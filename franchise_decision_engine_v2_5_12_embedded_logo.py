@@ -132,7 +132,7 @@ for k, v in defaults.items():
 # -----------------------------
 # Title / progress
 # -----------------------------
-st.title("Reality Check")
+
 st.caption("Step through each section, submit it, then review reality checks and final results together.")
 
 progress_cols = st.columns(7)
