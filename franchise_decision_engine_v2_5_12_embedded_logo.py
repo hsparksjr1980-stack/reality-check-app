@@ -3,7 +3,7 @@ import streamlit as st
 from pathlib import Path
 import base64
 
-st.set_page_config(page_title="Franchise Decision Engine V2.5.11", layout="wide")
+st.set_page_config(page_title="Reality Check", layout="wide")
 
 # -----------------------------
 # Helpers
