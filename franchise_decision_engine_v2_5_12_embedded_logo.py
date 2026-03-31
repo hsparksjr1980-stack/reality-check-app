@@ -4,6 +4,7 @@ from pathlib import Path
 import base64
 
 st.set_page_config(page_title="Reality Check", layout="wide")
+st.image("logo.png", width=500)
 
 # -----------------------------
 # Helpers
