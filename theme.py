@@ -1,4 +1,3 @@
-
 import streamlit as st
 
 PRIMARY = "#23467F"
@@ -8,6 +7,8 @@ ACCENT_LIGHT = "#DCEBFA"
 BG = "#F5F7FA"
 CARD = "#FFFFFF"
 BORDER = "#D6DEE8"
+
+TEXT = "#1F2937"
 
 SUCCESS = "#2E7D32"
 WARNING = "#B28704"
@@ -19,7 +20,8 @@ def apply_theme():
     st.markdown(
         f"""
         <style>
-        /* Hide Streamlit top chrome completely */
+
+        /* --- Remove Streamlit chrome --- */
         [data-testid="stToolbar"] {{
             display: none !important;
         }}
@@ -34,49 +36,57 @@ def apply_theme():
 
         [data-testid="stAppHeader"] {{
             display: none !important;
-            height: 0 !important;
-            max-height: 0 !important;
-            min-height: 0 !important;
-            visibility: hidden !important;
         }}
 
         header {{
             display: none !important;
-            height: 0 !important;
         }}
 
         footer {{
             display: none !important;
         }}
 
-        /* App background */
+        /* --- Base layout --- */
         .stApp {{
             background-color: {BG};
+            color: {TEXT};
         }}
 
-        /* Pull content up now that header is gone */
         .block-container {{
-            padding-top: 0.25rem !important;
+            padding-top: 0.5rem;
             padding-bottom: 2rem;
         }}
 
+        /* --- Force readable text everywhere --- */
+        html, body, [class*="css"] {{
+            color: {TEXT} !important;
+        }}
+
+        p, span, div {{
+            color: {TEXT};
+        }}
+
+        h1, h2, h3, h4, h5 {{
+            color: {PRIMARY};
+        }}
+
+        /* --- Sidebar --- */
         section[data-testid="stSidebar"] {{
             background-color: {ACCENT_LIGHT};
         }}
 
-        div[data-testid="stMetric"] {{
-            background: {CARD};
-            border: 1px solid {BORDER};
-            padding: 12px;
-            border-radius: 12px;
+        section[data-testid="stSidebar"] * {{
+            color: {TEXT} !important;
         }}
 
+        /* --- Buttons --- */
         div.stButton > button {{
             background-color: {PRIMARY};
             color: white;
             border: none;
             border-radius: 10px;
             font-weight: 600;
+            padding: 0.5rem 1rem;
         }}
 
         div.stButton > button:hover {{
@@ -84,10 +94,26 @@ def apply_theme():
             color: white;
         }}
 
+        /* --- Metrics / cards --- */
+        div[data-testid="stMetric"] {{
+            background: {CARD};
+            border: 1px solid {BORDER};
+            padding: 12px;
+            border-radius: 12px;
+            color: {TEXT};
+        }}
+
+        /* --- Inputs --- */
+        input, textarea, select {{
+            color: {TEXT} !important;
+        }}
+
+        /* --- Divider --- */
         hr {{
             border-top: 1px solid {BORDER};
         }}
 
+        /* --- Custom cards --- */
         .rc-card {{
             background: {CARD};
             border: 1px solid {BORDER};
@@ -109,6 +135,7 @@ def apply_theme():
         .rc-title-accent {{
             color: {ACCENT};
         }}
+
         </style>
         """,
         unsafe_allow_html=True,
