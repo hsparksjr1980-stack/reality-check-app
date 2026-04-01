@@ -67,7 +67,7 @@ def apply_theme():
         }}
 
         h1, h2, h3, h4, h5 {{
-            color: {PRIMARY};
+            color: {PRIMARY} !important;
         }}
 
         /* --- Sidebar --- */
@@ -79,10 +79,28 @@ def apply_theme():
             color: {TEXT} !important;
         }}
 
+        /* Sidebar radio labels */
+        section[data-testid="stSidebar"] label {{
+            color: {PRIMARY} !important;
+            font-weight: 600;
+        }}
+
+        section[data-testid="stSidebar"] span {{
+            color: {PRIMARY} !important;
+        }}
+
+        section[data-testid="stSidebar"] div[role="radiogroup"] > label[data-baseweb="radio"] {{
+            background-color: transparent;
+        }}
+
+        section[data-testid="stSidebar"] label[data-baseweb="radio"] > div {{
+            font-weight: 600;
+        }}
+
         /* --- Buttons --- */
         div.stButton > button {{
             background-color: {PRIMARY};
-            color: white;
+            color: white !important;
             border: none;
             border-radius: 10px;
             font-weight: 600;
@@ -91,7 +109,7 @@ def apply_theme():
 
         div.stButton > button:hover {{
             background-color: {PRIMARY_DARK};
-            color: white;
+            color: white !important;
         }}
 
         /* --- Metrics / cards --- */
@@ -103,8 +121,12 @@ def apply_theme():
             color: {TEXT};
         }}
 
-        /* --- Inputs --- */
+        /* --- Inputs / form labels --- */
         input, textarea, select {{
+            color: {TEXT} !important;
+        }}
+
+        label, .stRadio label, .stSelectbox label {{
             color: {TEXT} !important;
         }}
 
