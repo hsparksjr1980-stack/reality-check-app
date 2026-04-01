@@ -10,11 +10,6 @@ BORDER = "#D6DEE8"
 
 TEXT = "#1F2937"
 
-SUCCESS = "#2E7D32"
-WARNING = "#B28704"
-RISK = "#C76A00"
-DANGER = "#B00020"
-
 
 def apply_theme():
     st.markdown(
@@ -46,7 +41,7 @@ def apply_theme():
             display: none !important;
         }}
 
-        /* --- Base layout --- */
+        /* --- Base app --- */
         .stApp {{
             background-color: {BG};
             color: {TEXT};
@@ -57,16 +52,12 @@ def apply_theme():
             padding-bottom: 2rem;
         }}
 
-        /* --- Force readable text everywhere --- */
-        html, body, [class*="css"] {{
+        /* --- Global text --- */
+        html, body, p, li, label, div, span {{
             color: {TEXT} !important;
         }}
 
-        p, span, div {{
-            color: {TEXT};
-        }}
-
-        h1, h2, h3, h4, h5 {{
+        h1, h2, h3, h4, h5, h6 {{
             color: {PRIMARY} !important;
         }}
 
@@ -79,54 +70,82 @@ def apply_theme():
             color: {TEXT} !important;
         }}
 
-        /* Sidebar radio labels */
-        section[data-testid="stSidebar"] label {{
+        /* Sidebar radio group label */
+        section[data-testid="stSidebar"] [data-testid="stRadio"] label {{
             color: {PRIMARY} !important;
-            font-weight: 600;
+            font-weight: 600 !important;
         }}
 
-        section[data-testid="stSidebar"] span {{
+        /* Sidebar radio option text */
+        section[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label p {{
             color: {PRIMARY} !important;
+            font-weight: 600 !important;
         }}
 
-        section[data-testid="stSidebar"] div[role="radiogroup"] > label[data-baseweb="radio"] {{
-            background-color: transparent;
-        }}
-
-        section[data-testid="stSidebar"] label[data-baseweb="radio"] > div {{
-            font-weight: 600;
+        section[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label span {{
+            color: {PRIMARY} !important;
         }}
 
         /* --- Buttons --- */
         div.stButton > button {{
-            background-color: {PRIMARY};
-            color: white !important;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            padding: 0.5rem 1rem;
+            background-color: {PRIMARY} !important;
+            color: #FFFFFF !important;
+            border: none !important;
+            border-radius: 10px !important;
+            font-weight: 600 !important;
+            padding: 0.5rem 1rem !important;
         }}
 
         div.stButton > button:hover {{
-            background-color: {PRIMARY_DARK};
-            color: white !important;
+            background-color: {PRIMARY_DARK} !important;
+            color: #FFFFFF !important;
         }}
 
-        /* --- Metrics / cards --- */
+        /* --- Metrics --- */
         div[data-testid="stMetric"] {{
             background: {CARD};
             border: 1px solid {BORDER};
             padding: 12px;
             border-radius: 12px;
-            color: {TEXT};
+            color: {TEXT} !important;
         }}
 
-        /* --- Inputs / form labels --- */
+        /* --- Inputs --- */
         input, textarea, select {{
             color: {TEXT} !important;
         }}
 
-        label, .stRadio label, .stSelectbox label {{
+        /* --- Expander headers (this is your section title issue) --- */
+        details summary {{
+            color: {PRIMARY} !important;
+        }}
+
+        details summary p {{
+            color: {PRIMARY} !important;
+            font-weight: 700 !important;
+        }}
+
+        /* Streamlit expander button text */
+        [data-testid="stExpander"] summary {{
+            color: {PRIMARY} !important;
+        }}
+
+        [data-testid="stExpander"] summary p {{
+            color: {PRIMARY} !important;
+            font-weight: 700 !important;
+        }}
+
+        [data-testid="stExpander"] details summary span {{
+            color: {PRIMARY} !important;
+        }}
+
+        /* --- Radio labels in main content --- */
+        [data-testid="stRadio"] label p {{
+            color: {TEXT} !important;
+        }}
+
+        /* --- Selectbox labels --- */
+        [data-testid="stSelectbox"] label p {{
             color: {TEXT} !important;
         }}
 
@@ -151,11 +170,11 @@ def apply_theme():
         }}
 
         .rc-title-dark {{
-            color: {PRIMARY};
+            color: {PRIMARY} !important;
         }}
 
         .rc-title-accent {{
-            color: {ACCENT};
+            color: {ACCENT} !important;
         }}
 
         </style>
