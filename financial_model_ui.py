@@ -3,7 +3,7 @@ import streamlit as st
 from pathlib import Path
 import base64
 
-st.set_page_config(page_title="Franchise Decision Engine V2.5.11", layout="wide")
+st.set_page_config(page_title="Financial Model", layout="wide")
 
 # -----------------------------
 # Helpers
@@ -131,7 +131,7 @@ for k, v in defaults.items():
 # -----------------------------
 # Title / progress
 # -----------------------------
-st.title("Franchise Decision Engine V2.5.11")
+st.title("Financial Model")
 st.caption("Step through each section, submit it, then review reality checks and final results together.")
 
 progress_cols = st.columns(7)
@@ -576,8 +576,11 @@ with st.expander("7) Operating Assumptions", expanded=section_done("startup") an
 # Combined analysis
 # -----------------------------
 all_done = all(section_done(k) for k, _ in progress_items)
+from paywall_ui import require_premium_or_stop
 
 if all_done:
+    require_premium_or_stop()
+
     st.markdown("---")
     st.header("Reality Checks")
     st.caption("This is where your assumptions are compared against the FDD, financing pressure, and modeled startup costs.")

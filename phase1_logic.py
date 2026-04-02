@@ -60,12 +60,12 @@ def get_verdict(score):
 
 def get_score_color(score):
     if score >= 80:
-        return "#2e7d32"
+        return "#2E7D32"
     elif score >= 60:
-        return "#b28704"
+        return "#B28704"
     elif score >= 40:
-        return "#c76a00"
-    return "#b00020"
+        return "#C76A00"
+    return "#B00020"
 
 def get_critical_warnings(answers):
     warnings = []
@@ -147,7 +147,7 @@ def get_meaning_text(score):
     else:
         return [
             "This concept appears reasonably validated at this stage.",
-            "That does not remove risk, but it suggests the concept itself may be viable enough to move into financing and site work."
+            "That does not remove risk, but it suggests the concept itself may be viable enough to move into Discovery with discipline."
         ]
 
 def generate_insights(answers, score):
@@ -210,4 +210,51 @@ def get_top_drivers(answers, category_scores):
     return {
         "weak_categories": category_drivers,
         "weak_answers": answer_drivers,
+    }
+
+def get_discovery_decision(score, answers):
+    if score < 40:
+        verdict = "Do Not Commit Further"
+        color = "#B00020"
+        summary = "This concept has too many unresolved risks to justify travel, time, and deeper emotional commitment."
+        next_step = "Do not move to Discovery. Keep validating or stop the process."
+    elif score < 60:
+        verdict = "Proceed with Caution"
+        color = "#C76A00"
+        summary = "There may be enough here to keep looking, but not enough to move forward casually."
+        next_step = "Only move to Discovery if you have a short list of unanswered questions that must be resolved there."
+    else:
+        verdict = "Yes — Move Forward to Discovery"
+        color = "#2E7D32"
+        summary = "This opportunity is viable enough to justify deeper evaluation, provided you use Discovery to test risk, not reinforce enthusiasm."
+        next_step = "Move forward to Discovery with a defined list of hard questions and decision criteria."
+
+    reasons_to_pause = []
+    if answers.get("operator_calls", 0) <= 1:
+        reasons_to_pause.append("You have not talked to enough operators outside the sales process.")
+    if answers.get("unit_economics_confidence", 0) <= 1:
+        reasons_to_pause.append("The local economics do not appear strong enough yet.")
+    if answers.get("outer_market_readiness", 0) <= 1:
+        reasons_to_pause.append("The franchisor may not be ready for your specific market.")
+    if answers.get("negative_case_testing", 0) <= 1:
+        reasons_to_pause.append("You may not have spent enough time trying to break the deal.")
+    if answers.get("support_confidence", 0) <= 1:
+        reasons_to_pause.append("The support model is not convincing enough yet.")
+
+    if not reasons_to_pause:
+        reasons_to_pause.append("No single major pre-Discovery failure point was triggered, but Discovery should still be used to confirm what could break.")
+
+    what_happens_next = [
+        "You begin committing real time, travel, and attention to this process.",
+        "Your psychological commitment increases, even if the facts do not improve.",
+        "If you do not go in with hard questions, Discovery can increase excitement more than clarity.",
+    ]
+
+    return {
+        "verdict": verdict,
+        "color": color,
+        "summary": summary,
+        "next_step": next_step,
+        "reasons_to_pause": reasons_to_pause[:3],
+        "what_happens_next": what_happens_next,
     }
