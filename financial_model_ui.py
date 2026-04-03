@@ -549,6 +549,8 @@ with st.expander("7) Operating Assumptions", expanded=section_done("startup") an
                 "internet": internet,
                 "phone": phone,
                 "wage": wage,
+                "staff_per_hour": staff_per_hour,
+                "hours_open_daily": hours_open_daily,
                 "labor_hours_per_day": labor_hours_per_day,
                 "owner_comp": owner_comp,
                 "workers_comp": workers_comp,
@@ -563,7 +565,45 @@ with st.expander("7) Operating Assumptions", expanded=section_done("startup") an
                 "merchant_pct": merchant_pct,
                 "leakage_pct": leakage_pct,
             })
-            st.success("Operating Assumptions saved.")
+
+            # -----------------------------------
+            # Bridge to Deal Model (Pro)
+            # -----------------------------------
+            days = st.session_state["days_custom"]
+            annual_revenue = avg_ticket * tx_per_day * days
+            monthly_revenue = annual_revenue / 12
+
+            monthly_labor = wage * labor_hours_per_day * (days / 12)
+            monthly_payroll_tax = monthly_labor * (payroll_tax_pct / 100)
+
+            monthly_occupancy = base_rent + cam
+
+            other_fixed = (
+                monthly_occupancy
+                + electric + gas + water + sewer + trash + internet + phone
+                + workers_comp + property_ins
+                + tech + repairs + admin_misc
+                + owner_comp
+            )
+
+            ramp_map = {
+                "Fast (3 months)": 3,
+                "Normal (5 months)": 5,
+                "Slow (8 months)": 8,
+            }
+
+            st.session_state["fm_target_monthly_revenue"] = monthly_revenue
+            st.session_state["fm_cogs_pct"] = actual_cogs_pct / 100
+            st.session_state["fm_labor_pct"] = (monthly_labor + monthly_payroll_tax) / max(monthly_revenue, 1)
+            st.session_state["fm_royalty_pct"] = actual_royalty_pct / 100
+            st.session_state["fm_marketing_pct"] = actual_marketing_pct / 100
+            st.session_state["fm_other_variable_pct"] = (merchant_pct + leakage_pct) / 100
+            st.session_state["fm_other_fixed"] = other_fixed
+            st.session_state["fm_occupancy"] = monthly_occupancy
+            st.session_state["fm_ramp_months"] = ramp_map.get(st.session_state["ramp_speed"], 5)
+            st.session_state["fm_starting_cash"] = user_working_cap
+
+            st.success("Operating Assumptions saved and synced to Deal Model.")
     if section_done("operating"):
         days = st.session_state["days_custom"]
         annual_rev = st.session_state["avg_ticket"] * st.session_state["tx_per_day"] * days
@@ -591,7 +631,6 @@ if all_done:
         "The numbers shown are system averages, often from mature locations with years of brand awareness. "
         "In a new market, it will likely take longer to reach those levels."
     )
-
 
     # pull values
     fdd_low = st.session_state["fdd_low"]
@@ -851,7 +890,6 @@ if all_done:
             money(modeled_financing_fees), money(modeled_total_capital)
         ]
     })
-
 
     # FDD P&L vs Your Assumptions P&L (Year 1)
     fdd_total_expense_pct = (

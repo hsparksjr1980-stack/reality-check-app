@@ -6,6 +6,8 @@ from profile_ui import render_profile_setup
 from overview_ui import render_overview
 from final_decision_ui import render_final_decision
 from post_discovery_ui import render_post_discovery
+from deal_workspace_ui import render_deal_workspace
+from deal_model_ui import render_deal_model
 
 from phase0_ui import render_phase_0
 from phase1_ui import render_phase_1
@@ -18,6 +20,8 @@ PAGES = [
     "Financial Model",
     "Post-Discovery Review",
     "Final Decision",
+    "Deal Workspace (Pro)",
+    "Deal Model (Pro)",
 ]
 
 st.set_page_config(page_title="Reality Check", layout="wide")
@@ -129,3 +133,12 @@ elif page == "Post-Discovery Review":
 elif page == "Final Decision":
     render_final_decision()
     render_page_nav(PAGES, page)
+    
+elif page == "Deal Workspace (Pro)":
+    render_deal_workspace()
+    render_page_nav(PAGES, page)
+    
+elif page == "Deal Model (Pro)":
+    render_deal_model()
+    render_page_nav(PAGES, page)
+    
