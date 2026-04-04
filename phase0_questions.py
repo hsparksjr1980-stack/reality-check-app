@@ -1,9 +1,10 @@
 CATEGORY_WEIGHTS = {
-    "financial": 30,
+    "financial": 25,
     "risk": 20,
     "operator": 20,
     "skills": 15,
-    "lifestyle": 15,
+    "lifestyle": 10,
+    "market_prework": 10,
 }
 
 CATEGORY_META = {
@@ -26,6 +27,10 @@ CATEGORY_META = {
     "lifestyle": {
         "title": "Lifestyle Readiness",
         "intro": "This section checks whether your life can absorb the stress, time, and disruption."
+    },
+    "market_prework": {
+        "title": "Industry & Real Estate Pre-Work",
+        "intro": "This section tests whether you understand the industry and real estate reality before getting emotionally attached to a concept."
     },
 }
 
@@ -52,7 +57,12 @@ QUESTION_BANK = {
         {
             "id": "pg_comfort",
             "label": "How comfortable are you signing personal guarantees that could put personal assets at risk?",
-            "help": "This includes the possibility that your home or savings could be exposed."
+            "help": "This includes the possibility that your home, savings, or other personal assets could be exposed."
+        },
+        {
+            "id": "pg_understanding",
+            "label": "How fully do you understand what a personal guarantee can mean in a bad outcome?",
+            "help": "This is not just signing paperwork. It is real downside exposure."
         },
         {
             "id": "loss_tolerance",
@@ -63,6 +73,11 @@ QUESTION_BANK = {
             "id": "debt_pressure",
             "label": "How prepared are you to carry debt payments while revenue ramps slower than expected?",
             "help": "Assume the business takes longer than projected to stabilize."
+        },
+        {
+            "id": "runway_realism",
+            "label": "How confident are you that your runway assumptions are based on a slow ramp, not a best-case ramp?",
+            "help": "Many new operators assume the store will make money much sooner than reality."
         },
     ],
     "risk": [
@@ -85,6 +100,11 @@ QUESTION_BANK = {
             "id": "stress_tolerance",
             "label": "How well do you handle sustained financial and operational stress?",
             "help": "Think months of pressure, not a bad week."
+        },
+        {
+            "id": "booming_industry_bias",
+            "label": "How well are you avoiding the assumption that a strong industry automatically means your location will work?",
+            "help": "A growing category does not guarantee your unit economics, site, or ramp."
         },
     ],
     "operator": [
@@ -161,6 +181,28 @@ QUESTION_BANK = {
             "id": "burnout_risk",
             "label": "How likely are you to become overwhelmed if the business takes more time, money, and energy than expected?",
             "help": "Try to answer this honestly, not aspirationally."
+        },
+    ],
+    "market_prework": [
+        {
+            "id": "industry_understanding",
+            "label": "Before evaluating a specific concept, how well do you understand the industry you are entering?",
+            "help": "Margins, labor model, customer behavior, site dependence, and operating rhythm."
+        },
+        {
+            "id": "real_estate_requirements",
+            "label": "How well do you understand the type of real estate this concept actually requires?",
+            "help": "Drive-thru, inline, end cap, parking, visibility, access, size, and co-tenancy all matter."
+        },
+        {
+            "id": "local_real_estate_awareness",
+            "label": "How well do you understand what is actually available in your local commercial real estate market?",
+            "help": "Availability, cost, landlord quality, competition for sites, and timeline."
+        },
+        {
+            "id": "site_timeline_realism",
+            "label": "How realistic are your expectations for finding a site, signing a lease, and opening?",
+            "help": "This is usually slower and harder than first-time buyers expect."
         },
     ],
 }

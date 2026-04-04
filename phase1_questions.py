@@ -1,7 +1,7 @@
 CATEGORY_WEIGHTS = {
-    "concept_fit": 20,
+    "concept_fit": 15,
     "market_fit": 20,
-    "franchisor_support": 20,
+    "franchisor_support": 25,
     "economics": 25,
     "validation": 15,
 }
@@ -71,6 +71,11 @@ QUESTION_BANK = {
             "label": "How exposed does this concept seem to site quality and location risk?",
             "help": "If location has to be nearly perfect, risk is higher."
         },
+        {
+            "id": "new_market_ramp",
+            "label": "How realistic are your expectations for how long it may take to build awareness and ramp in a new market?",
+            "help": "A new market usually takes longer than an established brand market."
+        },
     ],
     "franchisor_support": [
         {
@@ -87,6 +92,31 @@ QUESTION_BANK = {
             "id": "system_dependence",
             "label": "How risky would it be if the franchisor’s tools, inventory systems, or reporting were weaker than expected?",
             "help": "High dependence on weak systems is a major risk."
+        },
+        {
+            "id": "pricing_transferability",
+            "label": "How confident are you that pricing, labor assumptions, and COGS assumptions transfer cleanly to your market?",
+            "help": "What works in one market often does not translate cleanly to another."
+        },
+        {
+            "id": "supply_chain_local_fit",
+            "label": "How confident are you that supply chain economics will work in your market after freight, distance, and local vendor reality?",
+            "help": "Approved sourcing is not the same as workable landed cost."
+        },
+        {
+            "id": "proprietary_shipping_risk",
+            "label": "How well have you accounted for proprietary item freight or shipping costs that may hit your market differently?",
+            "help": "Items shipped from the franchisor’s home market can create hidden cost pressure."
+        },
+        {
+            "id": "pos_flexibility",
+            "label": "How confident are you that the POS and operating systems are flexible enough for local promotions, meal deals, and real-world operation?",
+            "help": "A rigid or outdated POS can limit traffic-driving tactics and create workarounds."
+        },
+        {
+            "id": "reporting_quality",
+            "label": "How confident are you that reporting, recipes, and cost tracking are accurate enough for your market?",
+            "help": "If recipe costs and reporting are wrong, your margins can look better on paper than in reality."
         },
     ],
     "economics": [
@@ -109,6 +139,11 @@ QUESTION_BANK = {
             "id": "margin_pressure",
             "label": "How resilient do the margins appear if labor or COGS run worse than expected?",
             "help": "Thin margins break fast."
+        },
+        {
+            "id": "real_estate_cost_realism",
+            "label": "How well do your site, rent, buildout, and opening timeline assumptions reflect your actual market?",
+            "help": "Real estate and buildout often break the model before operations do."
         },
     ],
     "validation": [

@@ -1,4 +1,5 @@
-from phase1_questions import CATEGORY_WEIGHTS, QUESTION_BANK, CATEGORY_META
+from phase1_questions import QUESTION_BANK, CATEGORY_WEIGHTS, CATEGORY_META
+
 
 def calculate_category_score(category_key, answers):
     questions = QUESTION_BANK[category_key]
@@ -7,6 +8,7 @@ def calculate_category_score(category_key, answers):
     weight = CATEGORY_WEIGHTS[category_key]
     weighted_score = (raw_score / max_raw) * weight if max_raw else 0
     return round(weighted_score, 1), raw_score, max_raw
+
 
 def calculate_total_score(answers):
     category_scores = {}
@@ -25,6 +27,7 @@ def calculate_total_score(answers):
     total = apply_penalties(total, answers)
 
     return max(total, 0), category_scores
+
 
 def apply_penalties(score, answers):
     penalty = 0
@@ -47,7 +50,29 @@ def apply_penalties(score, answers):
     if answers.get("support_confidence", 0) <= 1 and answers.get("system_dependence", 0) <= 1:
         penalty += 6
 
+    if answers.get("pricing_transferability", 0) <= 1:
+        penalty += 5
+
+    if answers.get("supply_chain_local_fit", 0) <= 1:
+        penalty += 6
+
+    if answers.get("proprietary_shipping_risk", 0) <= 1:
+        penalty += 4
+
+    if answers.get("pos_flexibility", 0) <= 1:
+        penalty += 4
+
+    if answers.get("reporting_quality", 0) <= 1:
+        penalty += 6
+
+    if answers.get("real_estate_cost_realism", 0) <= 1:
+        penalty += 6
+
+    if answers.get("new_market_ramp", 0) <= 1:
+        penalty += 5
+
     return max(score - penalty, 0)
+
 
 def get_verdict(score):
     if score >= 80:
@@ -58,6 +83,7 @@ def get_verdict(score):
         return "High Concept Risk"
     return "Do Not Proceed"
 
+
 def get_score_color(score):
     if score >= 80:
         return "#2E7D32"
@@ -66,6 +92,7 @@ def get_score_color(score):
     elif score >= 40:
         return "#C76A00"
     return "#B00020"
+
 
 def get_critical_warnings(answers):
     warnings = []
@@ -79,7 +106,14 @@ def get_critical_warnings(answers):
     if answers.get("operator_calls", 0) == 0:
         warnings.append("You have not yet done enough independent operator validation.")
 
+    if answers.get("reporting_quality", 0) == 0:
+        warnings.append("The reporting, recipe, or cost tracking systems may not be reliable enough for your market.")
+
+    if answers.get("real_estate_cost_realism", 0) == 0:
+        warnings.append("Your real estate, buildout, or opening timeline assumptions may be materially too optimistic.")
+
     return warnings
+
 
 def generate_risk_flags(answers):
     flags = []
@@ -87,7 +121,7 @@ def generate_risk_flags(answers):
     if answers.get("unit_economics_confidence", 0) <= 1 and answers.get("break_even_realism", 0) <= 1:
         flags.append({
             "title": "Economics Risk",
-            "description": "Your numbers may not hold up once local costs and slower ramp are factored in.",
+            "description": "Your numbers may not hold up once local costs, slower ramp, and actual market conditions are factored in.",
             "impact": "This is one of the fastest ways a concept fails in a new market."
         })
 
@@ -98,25 +132,39 @@ def generate_risk_flags(answers):
             "impact": "This can show up in supply chain gaps, weak vendor coverage, bad assumptions, and poor local support."
         })
 
+    if answers.get("pricing_transferability", 0) <= 1 or answers.get("supply_chain_local_fit", 0) <= 1:
+        flags.append({
+            "title": "Local Cost Transfer Risk",
+            "description": "Pricing, labor, freight, or approved supplier economics may not translate cleanly to your market.",
+            "impact": "That can quietly destroy margins even if top-line sales look plausible."
+        })
+
+    if answers.get("proprietary_shipping_risk", 0) <= 1:
+        flags.append({
+            "title": "Freight / Proprietary Item Risk",
+            "description": "You may not yet have fully accounted for the cost of shipping proprietary items into your market.",
+            "impact": "That can increase COGS and make recipe economics worse than expected."
+        })
+
+    if answers.get("pos_flexibility", 0) <= 1 or answers.get("reporting_quality", 0) <= 1:
+        flags.append({
+            "title": "System Readiness Risk",
+            "description": "The POS, reporting, recipe management, or cost tracking systems may not be good enough for real-world operation.",
+            "impact": "Operators often end up absorbing the cost when the system is rigid or inaccurate."
+        })
+
+    if answers.get("real_estate_cost_realism", 0) <= 1 or answers.get("new_market_ramp", 0) <= 1:
+        flags.append({
+            "title": "Site & Ramp Reality Risk",
+            "description": "Your site, buildout, lease timing, or awareness ramp assumptions may still be too optimistic.",
+            "impact": "This creates longer runway needs and can break an otherwise decent concept."
+        })
+
     if answers.get("operator_calls", 0) <= 1:
         flags.append({
             "title": "Validation Risk",
             "description": "You may not yet have enough candid operator feedback to trust what you are seeing.",
             "impact": "That increases the odds of buying into a concept you do not fully understand."
-        })
-
-    if answers.get("support_confidence", 0) <= 1 and answers.get("system_dependence", 0) <= 1:
-        flags.append({
-            "title": "System Dependence Risk",
-            "description": "Your success may depend too heavily on franchisor systems that you are not confident in.",
-            "impact": "When systems fail, operators end up absorbing the cost."
-        })
-
-    if answers.get("competition_awareness", 0) <= 1:
-        flags.append({
-            "title": "Market Blind Spot",
-            "description": "Your view of the local market may still be incomplete.",
-            "impact": "That can lead to overestimating demand and underestimating alternatives."
         })
 
     if not flags:
@@ -128,11 +176,12 @@ def generate_risk_flags(answers):
 
     return flags[:3]
 
+
 def get_meaning_text(score):
     if score < 40:
         return [
             "This concept currently shows too much unresolved risk.",
-            "You should not move forward until the economics, support model, and validation process improve materially."
+            "You should not move forward until the economics, support model, systems, and validation process improve materially."
         ]
     elif score < 60:
         return [
@@ -150,19 +199,28 @@ def get_meaning_text(score):
             "That does not remove risk, but it suggests the concept itself may be viable enough to move into Discovery with discipline."
         ]
 
+
 def generate_insights(answers, score):
     insights = []
 
     if answers.get("outer_market_readiness", 0) <= 1:
         insights.append("Your answers suggest the franchisor may not be fully prepared to support your market.")
-    if answers.get("unit_economics_confidence", 0) <= 1:
-        insights.append("Your local economics may still be more assumption-driven than reality-tested.")
+    if answers.get("pricing_transferability", 0) <= 1:
+        insights.append("Your market may not support the same labor, pricing, or margin assumptions as the franchisor’s established markets.")
+    if answers.get("supply_chain_local_fit", 0) <= 1:
+        insights.append("Approved sourcing may exist, but the economics may still be wrong for your geography.")
+    if answers.get("proprietary_shipping_risk", 0) <= 1:
+        insights.append("Freight or proprietary item shipping costs may still be underweighted in your thinking.")
+    if answers.get("pos_flexibility", 0) <= 1:
+        insights.append("The POS may limit your ability to run location-level promotions or adapt to the market.")
+    if answers.get("reporting_quality", 0) <= 1:
+        insights.append("Weak reporting or inaccurate recipe costing can hide margin problems until it is too late.")
+    if answers.get("real_estate_cost_realism", 0) <= 1:
+        insights.append("Your real estate and opening assumptions may still be more optimistic than market-tested.")
+    if answers.get("new_market_ramp", 0) <= 1:
+        insights.append("You may still be underestimating how long it can take to build awareness in a new market.")
     if answers.get("operator_calls", 0) <= 1:
         insights.append("You likely need more candid feedback from operators who are not part of the sales process.")
-    if answers.get("competition_awareness", 0) <= 1:
-        insights.append("Your understanding of the local competitive landscape may still be incomplete.")
-    if answers.get("negative_case_testing", 0) <= 1:
-        insights.append("You may not have spent enough time trying to disprove the opportunity.")
 
     if not insights:
         if score >= 80:
@@ -171,6 +229,7 @@ def generate_insights(answers, score):
             insights.append("The concept may be workable, but more proof would still help reduce avoidable risk.")
 
     return insights
+
 
 def get_top_drivers(answers, category_scores):
     drivers = []
@@ -212,6 +271,7 @@ def get_top_drivers(answers, category_scores):
         "weak_answers": answer_drivers,
     }
 
+
 def get_discovery_decision(score, answers):
     if score < 40:
         verdict = "Do Not Commit Further"
@@ -236,10 +296,12 @@ def get_discovery_decision(score, answers):
         reasons_to_pause.append("The local economics do not appear strong enough yet.")
     if answers.get("outer_market_readiness", 0) <= 1:
         reasons_to_pause.append("The franchisor may not be ready for your specific market.")
-    if answers.get("negative_case_testing", 0) <= 1:
-        reasons_to_pause.append("You may not have spent enough time trying to break the deal.")
-    if answers.get("support_confidence", 0) <= 1:
-        reasons_to_pause.append("The support model is not convincing enough yet.")
+    if answers.get("pricing_transferability", 0) <= 1:
+        reasons_to_pause.append("Pricing, labor, or COGS assumptions may not transfer cleanly to your market.")
+    if answers.get("reporting_quality", 0) <= 1:
+        reasons_to_pause.append("The reporting or recipe-costing systems do not appear reliable enough yet.")
+    if answers.get("real_estate_cost_realism", 0) <= 1:
+        reasons_to_pause.append("Your site, lease, or buildout assumptions may still be too optimistic.")
 
     if not reasons_to_pause:
         reasons_to_pause.append("No single major pre-Discovery failure point was triggered, but Discovery should still be used to confirm what could break.")

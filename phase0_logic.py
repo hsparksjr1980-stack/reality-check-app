@@ -1,4 +1,5 @@
-from phase0_questions import CATEGORY_WEIGHTS, QUESTION_BANK, CATEGORY_META
+from phase0_questions import QUESTION_BANK, CATEGORY_WEIGHTS, CATEGORY_META
+
 
 def calculate_category_score(category_key, answers):
     questions = QUESTION_BANK[category_key]
@@ -7,6 +8,7 @@ def calculate_category_score(category_key, answers):
     weight = CATEGORY_WEIGHTS[category_key]
     weighted_score = (raw_score / max_raw) * weight if max_raw else 0
     return round(weighted_score, 1), raw_score, max_raw
+
 
 def calculate_total_score(answers):
     category_scores = {}
@@ -26,6 +28,7 @@ def calculate_total_score(answers):
 
     return max(total, 0), category_scores
 
+
 def apply_penalties(score, answers):
     penalty = 0
 
@@ -41,6 +44,9 @@ def apply_penalties(score, answers):
         penalty += 5
     elif answers.get("pg_comfort", 0) == 1:
         penalty += 3
+
+    if answers.get("pg_understanding", 0) <= 1:
+        penalty += 5
 
     if answers.get("ownership_style", 0) <= 1:
         penalty += 5
@@ -59,6 +65,24 @@ def apply_penalties(score, answers):
     if answers.get("family_support", 0) == 0:
         penalty += 4
 
+    if answers.get("runway_realism", 0) <= 1:
+        penalty += 5
+
+    if answers.get("booming_industry_bias", 0) <= 1:
+        penalty += 4
+
+    if answers.get("industry_understanding", 0) <= 1:
+        penalty += 4
+
+    if answers.get("real_estate_requirements", 0) <= 1:
+        penalty += 5
+
+    if answers.get("local_real_estate_awareness", 0) <= 1:
+        penalty += 6
+
+    if answers.get("site_timeline_realism", 0) <= 1:
+        penalty += 5
+
     weak_execution = 0
     for key in ["accounting", "inventory", "marketing", "learn_gaps"]:
         if answers.get(key, 0) <= 1:
@@ -69,6 +93,7 @@ def apply_penalties(score, answers):
 
     return max(score - penalty, 0)
 
+
 def get_verdict(score):
     if score >= 80:
         return "Proceed"
@@ -78,6 +103,7 @@ def get_verdict(score):
         return "High Risk"
     return "Do Not Proceed"
 
+
 def get_score_color(score):
     if score >= 80:
         return "#2e7d32"
@@ -86,6 +112,7 @@ def get_score_color(score):
     elif score >= 40:
         return "#c76a00"
     return "#b00020"
+
 
 def get_critical_warnings(answers):
     warnings = []
@@ -110,7 +137,18 @@ def get_critical_warnings(answers):
             "Your answers suggest the downside risk may be materially higher than your current comfort level."
         )
 
+    if answers.get("pg_understanding", 0) == 0:
+        warnings.append(
+            "You do not yet appear fully aligned with what a personal guarantee can mean in a bad outcome."
+        )
+
+    if answers.get("local_real_estate_awareness", 0) == 0:
+        warnings.append(
+            "You do not yet appear to understand the local commercial real estate reality well enough before concept selection."
+        )
+
     return warnings
+
 
 def generate_risk_flags(answers):
     flags = []
@@ -129,49 +167,43 @@ def generate_risk_flags(answers):
             "impact": "That mismatch often leads to weak execution, margin pressure, and disappointment."
         })
 
-    if answers.get("pg_comfort", 0) <= 1 and answers.get("walk_away", 0) <= 2:
+    if answers.get("pg_comfort", 0) <= 1 or answers.get("pg_understanding", 0) <= 1:
         flags.append({
-            "title": "Guarantee / Risk Misalignment",
-            "description": "You may not yet be fully aligned with the personal downside that often comes with franchise financing.",
-            "impact": "That can create hesitation before signing or regret after signing."
+            "title": "Personal Guarantee Risk",
+            "description": "You may not yet be fully aligned with the real downside created by personal guarantees.",
+            "impact": "This can create hesitation before signing and regret after signing."
         })
 
-    if answers.get("accounting", 0) <= 1 and answers.get("inventory", 0) <= 1 and answers.get("learn_gaps", 0) <= 1:
+    if answers.get("local_real_estate_awareness", 0) <= 1 or answers.get("site_timeline_realism", 0) <= 1:
         flags.append({
-            "title": "Execution Risk",
-            "description": "Your profile shows weak coverage in several core operating disciplines.",
-            "impact": "This increases the chance of missing problems early and reacting too slowly when margins slip."
+            "title": "Real Estate Blind Spot",
+            "description": "You may be underestimating how hard site selection, lease timing, and local real estate constraints can be.",
+            "impact": "This can delay opening, increase capital needs, and break early assumptions before the business even starts."
         })
 
-    if answers.get("family_support", 0) <= 1 and answers.get("time_capacity", 0) <= 1:
+    if answers.get("industry_understanding", 0) <= 1 or answers.get("real_estate_requirements", 0) <= 1:
         flags.append({
-            "title": "Lifestyle Pressure",
-            "description": "Your support system and time capacity may not be strong enough for early business strain.",
-            "impact": "That often leads to stress spillover, burnout, and rushed decision-making."
+            "title": "Pre-Concept Homework Risk",
+            "description": "You may be evaluating concepts before fully understanding the industry and physical site requirements.",
+            "impact": "That increases the odds of falling in love with a concept that does not fit your market."
         })
 
-    if answers.get("emotion_control", 0) <= 1 and answers.get("walk_away", 0) <= 1:
+    if answers.get("booming_industry_bias", 0) <= 1:
         flags.append({
-            "title": "Decision Discipline Risk",
-            "description": "Your answers suggest a higher chance of getting pulled forward by emotion or sunk cost.",
-            "impact": "That increases the odds of moving ahead when the better decision is to stop."
-        })
-
-    if answers.get("marketing", 0) <= 1 and answers.get("social_media", 0) <= 1:
-        flags.append({
-            "title": "Traffic Generation Risk",
-            "description": "Your ability to generate local awareness and demand may currently be underdeveloped.",
-            "impact": "If corporate support is weak, this can become a major drag on top-line performance."
+            "title": "Category Momentum Bias",
+            "description": "You may be assuming that a strong category or strong system sales automatically mean your location will work.",
+            "impact": "That can cause buyers to skip market-specific economics and site reality."
         })
 
     if not flags:
         flags.append({
             "title": "No Severe Early Trigger",
             "description": "You do not currently show a major single-point failure in Phase 0.",
-            "impact": "That does not remove risk, but it suggests your biggest issues may show up in later phases like capital, site, or lease structure."
+            "impact": "That does not remove risk, but it suggests your biggest issues may show up in later phases like concept validation, site, lease, or economics."
         })
 
     return flags[:3]
+
 
 def generate_insights(answers, score):
     insights = []
@@ -180,14 +212,14 @@ def generate_insights(answers, score):
         insights.append("Your current liquidity profile suggests limited room for mistakes.")
     if answers.get("ownership_style", 0) <= 1:
         insights.append("You appear to be leaning investor, but many franchise systems require operator behavior, especially early.")
-    if answers.get("pg_comfort", 0) <= 1:
-        insights.append("You may not yet be fully aligned with the reality of personal guarantees and downside exposure.")
-    if answers.get("learn_gaps", 0) <= 1:
-        insights.append("Your willingness to close knowledge gaps may not yet match the demands of ownership.")
-    if answers.get("family_support", 0) <= 1:
-        insights.append("Your support system may not be strong enough for the pressure this can create.")
-    if answers.get("marketing", 0) <= 1:
-        insights.append("Your current profile suggests customer acquisition may be more dependent on outside support than it should be.")
+    if answers.get("pg_understanding", 0) <= 1:
+        insights.append("You may not yet be fully aligned with the practical meaning of a personal guarantee.")
+    if answers.get("runway_realism", 0) <= 1:
+        insights.append("Your runway assumptions may still be too optimistic relative to how long ramp and break-even can actually take.")
+    if answers.get("local_real_estate_awareness", 0) <= 1:
+        insights.append("You may not yet understand the local commercial real estate market well enough before concept selection.")
+    if answers.get("industry_understanding", 0) <= 1:
+        insights.append("You may need a stronger understanding of the industry before treating a specific concept as a real opportunity.")
 
     if not insights:
         if score >= 80:
@@ -197,11 +229,12 @@ def generate_insights(answers, score):
 
     return insights
 
+
 def get_meaning_text(score):
     if score < 40:
         return [
             "You are currently set up for a high-risk outcome.",
-            "The gaps identified here typically show up as financial strain, operating stress, or bad decision-making within the first year."
+            "The gaps identified here typically show up as financial strain, opening delays, operating stress, or bad decision-making within the first year."
         ]
     elif score < 60:
         return [
@@ -216,8 +249,9 @@ def get_meaning_text(score):
     else:
         return [
             "Your Phase 0 profile suggests you may be capable of moving forward.",
-            "That said, later phases like deal structure, site selection, and economics can still break a good profile."
+            "That said, later phases like concept validation, site selection, and economics can still break a good profile."
         ]
+
 
 def get_top_drivers(answers, category_scores):
     drivers = []
