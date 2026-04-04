@@ -17,6 +17,7 @@ from deal_model_ui import render_deal_model
 from financial_model_ui import render_financial_model
 from phase0_ui import render_phase_0
 from phase1_ui import render_phase_1
+from opportunity_fit_ui import render_opportunity_fit
 
 
 st.set_page_config(page_title="Reality Check", layout="wide")
@@ -86,6 +87,8 @@ elif page == "Reality Check":
     render_phase_0()
 elif page == "Concept Validation":
     render_phase_1()
+elif page == "Opportunity Fit & Recommendations":
+    render_opportunity_fit()
 elif page == "Financial Model":
     render_financial_model()
 elif page == "Post-Discovery":
@@ -94,11 +97,11 @@ elif page == "Final Decision":
     render_final_decision()
 elif page == "Plans & Support":
     render_plans_support()
-elif page == "Deal Workspace (Pro)":
+elif page == "Deal Workspace":
     render_deal_workspace()
-elif page == "Deal Model (Pro)":
+elif page == "Deal Model":
     render_deal_model()
-elif page == "Buildout & Launch Tracker (Pro)":
+elif page == "Buildout & Launch Tracker":
     render_buildout_tracker()
 
 render_page_nav(PAGES, page)

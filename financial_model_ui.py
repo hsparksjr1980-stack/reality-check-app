@@ -67,6 +67,78 @@ def render_financial_model():
                 st.write(f"- {item}")
 
     # -----------------------------
+    # Styling / scoring helpers
+    # -----------------------------
+    def inject_score_styles():
+        st.markdown(
+            """
+            <style>
+            .fm-score-card {
+                border: 1px solid rgba(120,120,120,.22);
+                border-radius: 16px;
+                padding: 0.9rem 1rem;
+                margin-bottom: 1rem;
+                background: rgba(255,255,255,.02);
+            }
+            .fm-score-label {
+                font-size: 0.78rem;
+                text-transform: uppercase;
+                opacity: 0.72;
+                margin-bottom: 0.2rem;
+            }
+            .fm-score-value {
+                font-size: 1.35rem;
+                font-weight: 700;
+                line-height: 1.1;
+                margin-bottom: 0.15rem;
+            }
+            .fm-score-note {
+                font-size: 0.85rem;
+                opacity: 0.84;
+            }
+            .fm-good {
+                border: 1px solid rgba(60,179,113,.40) !important;
+                background: rgba(60,179,113,.10) !important;
+            }
+            .fm-caution {
+                border: 1px solid rgba(255,193,7,.40) !important;
+                background: rgba(255,193,7,.10) !important;
+            }
+            .fm-bad {
+                border: 1px solid rgba(220,53,69,.40) !important;
+                background: rgba(220,53,69,.10) !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    def score_class(score: float) -> str:
+        if score >= 78:
+            return "fm-good"
+        if score >= 58:
+            return "fm-caution"
+        return "fm-bad"
+
+    def sidebar_colors(score: float):
+        if score >= 78:
+            return "#3cb371", "rgba(60,179,113,.12)"
+        if score >= 58:
+            return "#ffc107", "rgba(255,193,7,.12)"
+        return "#dc3545", "rgba(220,53,69,.12)"
+
+    def banded_score(value: float, bands: list[tuple[float, float]]) -> float:
+        """
+        bands: list of (threshold, score), first threshold matched wins.
+        """
+        for threshold, score in bands:
+            if value >= threshold:
+                return score
+        return bands[-1][1]
+
+    inject_score_styles()
+
+    # -----------------------------
     # Defaults
     # -----------------------------
     defaults = {
@@ -1190,6 +1262,198 @@ def render_financial_model():
 
         lowest_cash = min(cash_series) if cash_series else starting_cash
         added_cash_needed = abs(lowest_cash) if lowest_cash < 0 else 0.0
+
+        # -----------------------------------
+        # Financial scoring
+        # -----------------------------------
+        after_debt_margin = safe_div(monthly_money_left_after_loan, max(monthly_revenue, 1))
+        break_even_cushion = safe_div((monthly_revenue - break_even_monthly_revenue), max(monthly_revenue, 1))
+        capital_gap_pct = safe_div((modeled_total_capital - user_start_with_unexpected), max(modeled_total_capital, 1))
+        stress_gap_pct = safe_div((stress_total_capital - modeled_total_capital), max(modeled_total_capital, 1))
+        added_cash_pct = safe_div(added_cash_needed, max(starting_cash, 1))
+        occupancy_pct_actual = safe_div(monthly_occupancy, max(monthly_revenue, 1))
+
+        dscr_score = banded_score(dscr, [
+            (1.50, 100),
+            (1.25, 85),
+            (1.10, 70),
+            (1.00, 50),
+            (0.90, 30),
+            (-999, 10),
+        ])
+
+        margin_score = banded_score(after_debt_margin, [
+            (0.12, 100),
+            (0.08, 85),
+            (0.04, 70),
+            (0.00, 50),
+            (-0.05, 25),
+            (-999, 10),
+        ])
+
+        break_even_score = banded_score(break_even_cushion, [
+            (0.20, 100),
+            (0.12, 85),
+            (0.05, 70),
+            (0.00, 50),
+            (-0.10, 25),
+            (-999, 10),
+        ])
+
+        sales_realism_score = 100
+        if position_label == "Below system range":
+            sales_realism_score = 70
+        elif position_label == "Bottom quartile":
+            sales_realism_score = 85
+        elif position_label == "Below median":
+            sales_realism_score = 95
+        elif position_label == "Above median":
+            sales_realism_score = 80
+        elif position_label == "Top quartile":
+            sales_realism_score = 55
+        elif position_label == "Aggressive":
+            sales_realism_score = 25
+
+        capital_sufficiency_score = 100
+        if added_cash_needed > 0:
+            if added_cash_pct >= 1.0:
+                capital_sufficiency_score = 15
+            elif added_cash_pct >= 0.50:
+                capital_sufficiency_score = 30
+            elif added_cash_pct >= 0.25:
+                capital_sufficiency_score = 50
+            else:
+                capital_sufficiency_score = 65
+        else:
+            if capital_gap_pct > 0.20:
+                capital_sufficiency_score = 60
+            elif capital_gap_pct > 0.10:
+                capital_sufficiency_score = 75
+            else:
+                capital_sufficiency_score = 90
+
+        occupancy_score = banded_score(-occupancy_pct_actual, [
+            (-0.08, 100),   # occupancy <= 8%
+            (-0.10, 85),    # occupancy <= 10%
+            (-0.12, 70),    # occupancy <= 12%
+            (-0.15, 45),    # occupancy <= 15%
+            (999, 20),
+        ])
+
+        financial_score = round(
+            dscr_score * 0.25
+            + margin_score * 0.25
+            + break_even_score * 0.20
+            + capital_sufficiency_score * 0.15
+            + sales_realism_score * 0.10
+            + occupancy_score * 0.05,
+            1
+        )
+
+        delay_penalty = 0
+        if delay_months >= 3:
+            delay_penalty = 20
+        elif delay_months == 2:
+            delay_penalty = 12
+        elif delay_months == 1:
+            delay_penalty = 6
+
+        ramp_penalty = 0
+        if ramp_months >= 8:
+            ramp_penalty = 15
+        elif ramp_months >= 5:
+            ramp_penalty = 8
+
+        estimate_penalty = {"Rough guess": 18, "Partial quotes": 10, "Fully quoted": 3}[estimate_completeness]
+        stress_penalty = 0
+        if stress_gap_pct >= 0.18:
+            stress_penalty = 15
+        elif stress_gap_pct >= 0.10:
+            stress_penalty = 8
+
+        pressure_test_score = round(
+            max(
+                1,
+                min(
+                    100,
+                    financial_score
+                    - delay_penalty
+                    - ramp_penalty
+                    - estimate_penalty
+                    - stress_penalty
+                )
+            ),
+            1
+        )
+
+        st.session_state["financial_score"] = financial_score
+        st.session_state["pressure_test_score"] = pressure_test_score
+        st.session_state["flag_buildout_too_high"] = modeled_total_capital > fdd_high
+        st.session_state["flag_rent_too_high"] = occupancy_pct_actual > 0.10
+        st.session_state["flag_no_margin_for_error"] = (dscr < 1.10) or (break_even_cushion < 0.05)
+        st.session_state["required_guardrails"] = {
+            "max_rent_percent": {
+                "target": 10.0,
+                "actual": round(occupancy_pct_actual * 100, 1),
+                "operator": "<=",
+            },
+            "max_buildout": {
+                "target": round(fdd_high, 0),
+                "actual": round(modeled_total_capital, 0),
+                "operator": "<=",
+            },
+            "min_liquidity_remaining": {
+                "target": 0.0,
+                "actual": round(lowest_cash, 0),
+                "operator": ">=",
+            },
+        }
+
+        # Sidebar score summary
+        border_color, bg_color = sidebar_colors(financial_score)
+        st.sidebar.markdown(
+            f"""
+            <div style="
+                border: 1px solid {border_color};
+                border-left: 4px solid {border_color};
+                background: {bg_color};
+                border-radius: 14px;
+                padding: 0.75rem 0.9rem;
+                margin-bottom: 0.75rem;
+            ">
+                <div style="font-size:0.75rem; opacity:.7;">FINANCIAL SCORE</div>
+                <div style="font-size:1.4rem; font-weight:700;">{financial_score}</div>
+                <div style="font-size:0.8rem; margin-top:0.25rem;">Pressure Test: {pressure_test_score}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Score cards
+        st.markdown("### Score Summary")
+        sc1, sc2 = st.columns(2)
+        with sc1:
+            st.markdown(
+                f"""
+                <div class="fm-score-card {score_class(financial_score)}">
+                    <div class="fm-score-label">Financial Score</div>
+                    <div class="fm-score-value">{financial_score}</div>
+                    <div class="fm-score-note">Based on DSCR, margin after debt, break-even cushion, capital sufficiency, sales realism, and occupancy pressure.</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with sc2:
+            st.markdown(
+                f"""
+                <div class="fm-score-card {score_class(pressure_test_score)}">
+                    <div class="fm-score-label">Pressure Test Score</div>
+                    <div class="fm-score-value">{pressure_test_score}</div>
+                    <div class="fm-score-note">Adjusts the financial score for ramp speed, delays, estimate quality, and stress-case capital pressure.</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
         r1, r2, r3, r4 = st.columns(4)
         r1.metric("Monthly revenue", money(monthly_revenue))

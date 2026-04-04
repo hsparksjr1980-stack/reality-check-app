@@ -26,6 +26,19 @@ DEFAULTS = {
     "guardrail_status": {},
     "buildout_tracker_df": None,
     "workspace_notes": None,
+
+    # Opportunity Fit defaults
+    "time_availability_score": 3,
+    "operational_willingness_score": 3,
+    "people_management_comfort_score": 3,
+    "risk_tolerance_score": 3,
+    "capital_flexibility_score": 3,
+    "prefers_structure_process": False,
+    "opportunity_fit_scores": {},
+    "opportunity_fit_packet": None,
+    "opportunity_fit_primary_profile": None,
+    "opportunity_fit_secondary_profile": None,
+    
 }
 
 
