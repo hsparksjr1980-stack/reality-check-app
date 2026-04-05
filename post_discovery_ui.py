@@ -1,69 +1,92 @@
+# post_discovery_ui.py
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
 import streamlit as st
+
+from ui_styles import (
+    close_shell,
+    open_shell,
+    render_card,
+    render_page_header,
+    render_section_intro,
+)
 
 
 ANSWER_OPTIONS = ["Select one...", "Yes", "Somewhat", "No"]
 
 
-def _sidebar_color(score: int):
-    if score >= 78:
-        return "#3cb371", "rgba(60,179,113,.12)"
-    elif score >= 58:
-        return "#ffc107", "rgba(255,193,7,.12)"
-    else:
-        return "#dc3545", "rgba(220,53,69,.12)"
+@dataclass(frozen=True)
+class QuestionGroup:
+    title: str
+    description: str
+    questions: tuple[str, ...]
 
 
-def _inject_styles() -> None:
-    st.markdown(
-        """
-        <style>
-        .pd-hero, .pd-card, .pd-featured, .pd-helper, .pd-metric, .pd-live {
-            border: 1px solid rgba(120,120,120,.22);
-            border-radius: 18px;
-            background: rgba(255,255,255,.02);
-        }
-        .pd-hero { padding: 1.3rem; margin-bottom: 1rem; }
-        .pd-card, .pd-featured, .pd-helper, .pd-metric, .pd-live { padding: 1rem; margin-bottom: 1rem; }
-        .pd-kicker { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.72; margin-bottom: 0.4rem; }
-        .pd-title { font-size: 1.9rem; font-weight: 700; line-height: 1.15; margin-bottom: 0.45rem; }
-        .pd-subtitle { font-size: 1rem; opacity: 0.92; }
-        .pd-section-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.35rem; }
-        .pd-card-title { font-size: 1.08rem; font-weight: 700; margin-bottom: 0.2rem; }
-        .pd-badge { display: inline-block; font-size: 0.74rem; font-weight: 600; padding: 0.22rem 0.5rem; border-radius: 999px; border: 1px solid rgba(120,120,120,.28); margin-bottom: 0.55rem; }
-        .pd-big { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
-        .pd-muted { opacity: 0.84; }
-        .pd-metric-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.72; margin-bottom: 0.2rem; }
-        .pd-metric-value { font-size: 1.45rem; font-weight: 700; line-height: 1.1; }
-        .pd-live-title { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.35rem; }
-
-        .result-good {
-            border: 1px solid rgba(60, 179, 113, .45) !important;
-            background: rgba(60, 179, 113, .10) !important;
-        }
-        .result-caution {
-            border: 1px solid rgba(255, 193, 7, .45) !important;
-            background: rgba(255, 193, 7, .10) !important;
-        }
-        .result-bad {
-            border: 1px solid rgba(220, 53, 69, .45) !important;
-            background: rgba(220, 53, 69, .10) !important;
-        }
-        .metric-good {
-            border: 1px solid rgba(60, 179, 113, .35) !important;
-            background: rgba(60, 179, 113, .08) !important;
-        }
-        .metric-caution {
-            border: 1px solid rgba(255, 193, 7, .35) !important;
-            background: rgba(255, 193, 7, .08) !important;
-        }
-        .metric-bad {
-            border: 1px solid rgba(220, 53, 69, .35) !important;
-            background: rgba(220, 53, 69, .08) !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+QUESTION_GROUPS: tuple[QuestionGroup, ...] = (
+    QuestionGroup(
+        title="Occupancy, Lease, and Buildout",
+        description="Confirm whether the real estate and buildout assumptions now hold up under closer review.",
+        questions=(
+            "1. Are rent assumptions now grounded enough to rely on?",
+            "2. Are buildout costs now materially more developed?",
+            "3. Have lease terms been reviewed enough to understand real occupancy exposure?",
+            "4. Is the financing path now more concrete than it was earlier?",
+            "5. Are there still meaningful key unknowns remaining?",
+            "6. Are revenue assumptions now grounded enough to test seriously?",
+        ),
+    ),
+    QuestionGroup(
+        title="Operating Assumptions",
+        description="Assess whether the unit-level assumptions are becoming more factual and less optimistic.",
+        questions=(
+            "7. Are labor assumptions more reliable than they were earlier?",
+            "8. Are vendor and supply assumptions sufficiently developed?",
+            "9. Are utilities, occupancy, and fixed costs more grounded now?",
+            "10. Are working capital needs clearer now than before?",
+            "11. Are lender expectations and underwriting assumptions more defined now?",
+            "12. Are landlord or lease negotiations grounded enough to judge the deal realistically?",
+        ),
+    ),
+    QuestionGroup(
+        title="Economics and Risk Exposure",
+        description="Check whether the economics, downside exposure, and personal obligations are now clearer.",
+        questions=(
+            "13. Do the site economics make more sense now than they did earlier?",
+            "14. Is personal guarantee exposure more fully understood now?",
+            "15. Are downside and exit scenarios clearer now than before?",
+            "16. Is more of the deal now based on facts rather than sales framing?",
+            "17. Does the opening path now look realistic rather than idealized?",
+            "18. Is the execution burden better understood now?",
+        ),
+    ),
+    QuestionGroup(
+        title="Pressure Testing",
+        description="Evaluate whether the deal still works when conditions become less favorable.",
+        questions=(
+            "19. Is the actual capital requirement more grounded now?",
+            "20. Have the key assumptions been pressure-tested enough to rely on?",
+            "21. Does the deal still work if things do not go perfectly?",
+            "22. Is cost overrun risk now bounded enough to be acceptable?",
+            "23. Is ramp timing realistic enough to support a decision?",
+            "24. Is staffing readiness clearer now than it was before?",
+        ),
+    ),
+    QuestionGroup(
+        title="Decision Readiness",
+        description="Decide whether the actual deal is now grounded enough to carry forward responsibly.",
+        questions=(
+            "25. Is local market demand convincing enough to support the assumptions?",
+            "26. Does the actual deal still fit your operating reality?",
+            "27. Are your conditions for moving forward clearly defined now?",
+            "28. Do you feel more objectively grounded than emotionally committed at this point?",
+            "29. Are you still willing to walk away if the conditions do not hold up?",
+            "30. Is the deal now more grounded in facts than in early excitement?",
+        ),
+    ),
+)
 
 
 def _answer_points(value: str) -> int:
@@ -76,39 +99,48 @@ def _answer_points(value: str) -> int:
     return 0
 
 
-def _get_result_class(verdict: str) -> str:
-    if verdict == "Stronger Pre-Commitment Signal":
-        return "result-good"
-    if verdict == "Proceed with Conditions Signal":
-        return "result-caution"
-    return "result-bad"
-
-
-def _get_metric_class(score: int) -> str:
+def _status_label(score: int) -> str:
     if score >= 78:
-        return "metric-good"
+        return "Cleaner"
     if score >= 58:
-        return "metric-caution"
-    return "metric-bad"
+        return "Conditional"
+    return "Weak"
 
 
-def _score_post_discovery() -> tuple[int, str, list[str], list[str], int, int]:
-    positives = []
-    conditions = []
+def _result_summary(score: int) -> tuple[str, str]:
+    if score >= 78:
+        return (
+            "Stronger pre-commitment signal",
+            "More of the deal now appears grounded in facts, clearer economics, and better-defined conditions.",
+        )
+    if score >= 58:
+        return (
+            "Proceed with conditions signal",
+            "Some parts of the deal appear stronger, but several conditions still need to be resolved before confidence is justified.",
+        )
+    return (
+        "Weak pre-commitment signal",
+        "Too much of the deal may still depend on unresolved facts, optimistic assumptions, or conditions that are not yet reliable.",
+    )
+
+
+def _score_post_discovery() -> tuple[int, str, str, list[str], list[str], int, int]:
+    positives: list[str] = []
+    conditions: list[str] = []
 
     question_keys = [f"pd_q{i}" for i in range(1, 31)]
-    values = [st.session_state.get(k, "Select one...") for k in question_keys]
-    points = [_answer_points(v) for v in values]
-    answered_count = sum(1 for v in values if v != "Select one...")
+    values = [st.session_state.get(key, "Select one...") for key in question_keys]
+    points = [_answer_points(value) for value in values]
+
+    answered_count = sum(1 for value in values if value != "Select one...")
     total_questions = len(question_keys)
     total_points = sum(points)
 
     quality_ratio = (total_points / (answered_count * 5)) if answered_count > 0 else 0
-    completion_ratio = answered_count / total_questions
+    completion_ratio = answered_count / total_questions if total_questions else 0
 
     score = 20 + round(quality_ratio * 55) + round(completion_ratio * 15)
 
-    # Key signals
     if values[0] == "Yes":
         positives.append("Rent assumptions appear more grounded.")
     elif values[0] == "No":
@@ -135,7 +167,7 @@ def _score_post_discovery() -> tuple[int, str, list[str], list[str], int, int]:
         conditions.append("There are still meaningful unknowns remaining.")
 
     if values[5] == "No":
-        conditions.append("If the revenue assumptions are still not grounded, the deal remains too dependent on optimism.")
+        conditions.append("If revenue assumptions are still not grounded, the deal remains too dependent on optimism.")
     if values[6] == "No":
         conditions.append("If labor assumptions are still unclear, operating pressure may still be understated.")
     if values[7] == "No":
@@ -180,166 +212,120 @@ def _score_post_discovery() -> tuple[int, str, list[str], list[str], int, int]:
     if values[26] == "No":
         conditions.append("If your conditions for moving forward are still not clearly defined, discipline is weaker than it should be.")
     if values[27] == "No":
-        conditions.append("If you still feel more emotionally committed than objectively grounded, the decision quality is weaker.")
+        conditions.append("If you still feel more emotionally committed than objectively grounded, decision quality is weaker.")
     if values[28] == "No":
         conditions.append("If you are still not willing to walk away, negotiation leverage and discipline are reduced.")
     if values[29] == "Yes":
         positives.append("The deal appears more grounded in facts than in early excitement.")
 
-    # Session flags for later engines
     st.session_state["flag_major_unknowns_remaining"] = values[4] == "Yes"
     st.session_state["flag_unverified_unit_economics"] = values[5] == "No"
     st.session_state["flag_no_margin_for_error"] = values[20] == "No"
 
     score = max(1, min(100, score))
+    verdict, verdict_body = _result_summary(score)
 
-    if score >= 78:
-        verdict = "Stronger Pre-Commitment Signal"
-    elif score >= 58:
-        verdict = "Proceed with Conditions Signal"
-    else:
-        verdict = "Weak Pre-Commitment Signal"
-
-    deduped_positives = []
-    seen = set()
+    deduped_positives: list[str] = []
+    seen_positives: set[str] = set()
     for item in positives:
-        if item not in seen:
+        if item not in seen_positives:
             deduped_positives.append(item)
-            seen.add(item)
+            seen_positives.add(item)
 
-    deduped_conditions = []
-    seen = set()
+    deduped_conditions: list[str] = []
+    seen_conditions: set[str] = set()
     for item in conditions:
-        if item not in seen:
+        if item not in seen_conditions:
             deduped_conditions.append(item)
-            seen.add(item)
+            seen_conditions.add(item)
 
-    return score, verdict, deduped_positives[:6], deduped_conditions[:6], answered_count, total_questions
-
-
-def render_post_discovery():
-    _inject_styles()
-
-    st.title("Post-Discovery Review")
-
-    st.markdown(
-        """
-        <div class="pd-hero">
-            <div class="pd-kicker">Phase 2 — Pre-Commitment</div>
-            <div class="pd-title">Review the real deal, not the early story.</div>
-            <div class="pd-subtitle">
-                At this stage, the goal is to pressure test what is now known, what is still unknown, and what must be true
-                before a clean decision to move forward makes sense.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    return (
+        score,
+        verdict,
+        verdict_body,
+        deduped_positives[:6],
+        deduped_conditions[:6],
+        answered_count,
+        total_questions,
     )
 
-    st.markdown("### What to Look At")
-    st.write("- Rent and occupancy structure")
-    st.write("- Buildout costs and remaining uncertainty")
-    st.write("- Lease terms and commitments")
-    st.write("- Financing path and liquidity pressure")
-    st.write("- Unknowns that still have not become facts")
-    st.write("- Whether the real deal still fits your original expectations")
 
-    st.markdown("### What’s Common in the Industry")
-    st.write("Many deals still look acceptable until real numbers, lease terms, lender expectations, and buildout realities come into view. This is where weak assumptions tend to show up.")
+def _render_live_progress(score: int, verdict: str, answered_count: int, total_questions: int) -> None:
+    progress_ratio = answered_count / total_questions if total_questions else 0
 
-    st.markdown("### What to Ask")
-    st.write("- What do I now know that I did not know earlier?")
-    st.write("- What still remains too uncertain?")
-    st.write("- What conditions must be true before this deal is worth carrying forward?")
-    st.write("- Am I still relying on optimism where I should now have facts?")
+    col1, col2, col3 = st.columns(3, gap="medium")
+    with col1:
+        render_card(
+            label="Current score",
+            title=str(score),
+            body="A directional signal based on how much of the deal now appears grounded.",
+        )
+    with col2:
+        render_card(
+            label="Signal",
+            title=verdict,
+            body="This becomes more reliable as the remaining questions are completed.",
+        )
+    with col3:
+        render_card(
+            label="Completion",
+            title=f"{answered_count} of {total_questions}",
+            body="Complete every section for a stronger pre-commitment read.",
+        )
 
-    st.markdown("### Pressure Test")
-    st.write("If buildout rises, rent is less favorable, ramp is slower, or lender terms tighten, does the deal still hold up?")
+    st.progress(progress_ratio)
 
-    live_score, live_verdict, _, _, answered_count, total_questions = _score_post_discovery()
-    live_metric_class = _get_metric_class(live_score)
-    border_color, bg_color = _sidebar_color(live_score)
 
-    st.sidebar.markdown(
-        f"""
-        <div style="
-            border: 1px solid {border_color};
-            border-left: 4px solid {border_color};
-            background: {bg_color};
-            border-radius: 14px;
-            padding: 0.75rem 0.9rem;
-            margin-bottom: 0.75rem;
-        ">
-            <div style="font-size:0.75rem; opacity:.7;">LIVE SCORE</div>
-            <div style="font-size:1.4rem; font-weight:700;">{live_score}</div>
-            <div style="font-size:0.8rem; margin-top:0.25rem;">
-                {answered_count} / {total_questions} answered
-            </div>
-            <div style="font-size:0.85rem; margin-top:0.35rem; font-weight:600;">
-                {live_verdict}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+def _render_focus_cards() -> None:
+    col1, col2, col3 = st.columns(3, gap="medium")
+
+    with col1:
+        render_card(
+            label="Focus",
+            title="Ground the economics",
+            body="Verify rent, buildout, capital needs, and margin for error against the real deal terms.",
+        )
+
+    with col2:
+        render_card(
+            label="Focus",
+            title="Reduce unknowns",
+            body="Separate what is now fact from what is still open, unresolved, or too dependent on optimism.",
+        )
+
+    with col3:
+        render_card(
+            label="Focus",
+            title="Define conditions",
+            body="Clarify what must be true before moving forward is justified on disciplined terms.",
+        )
+
+
+def _render_question_groups() -> None:
+    render_section_intro(
+        title="Post-discovery questions",
+        body="Answer based on what is now known from discovery, lease review, lender conversations, and real operating assumptions.",
     )
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
-    st.markdown(
-        f"""
-        <div class="pd-live {live_metric_class}">
-            <div class="pd-live-title">Live Score Summary</div>
-            <div class="pd-muted">
-                Current Score: <strong>{live_score}</strong> &nbsp;&nbsp;|&nbsp;&nbsp;
-                Answered: <strong>{answered_count} / {total_questions}</strong> &nbsp;&nbsp;|&nbsp;&nbsp;
-                Current Signal: <strong>{live_verdict}</strong>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    for group_index, group in enumerate(QUESTION_GROUPS, start=1):
+        with st.expander(f"{group_index}. {group.title}", expanded=(group_index == 1)):
+            st.caption(group.description)
+            for question in group.questions:
+                question_number = int(question.split(".", 1)[0])
+                st.selectbox(
+                    question,
+                    ANSWER_OPTIONS,
+                    key=f"pd_q{question_number}",
+                )
+
+
+def _render_notes() -> None:
+    render_section_intro(
+        title="Reflection notes",
+        body="Capture what is now stronger, what still concerns you, and what conditions must be true before moving forward.",
     )
-
-    st.markdown("---")
-    st.markdown("### 30 Post-Discovery Questions")
-
-    questions = [
-        "1. Are rent assumptions now grounded enough to rely on?",
-        "2. Are buildout costs now materially more developed?",
-        "3. Have lease terms been reviewed enough to understand real occupancy exposure?",
-        "4. Is the financing path now more concrete than it was earlier?",
-        "5. Are there still meaningful key unknowns remaining?",
-        "6. Are revenue assumptions now grounded enough to test seriously?",
-        "7. Are labor assumptions more reliable than they were earlier?",
-        "8. Are vendor and supply assumptions sufficiently developed?",
-        "9. Are utilities, occupancy, and fixed costs more grounded now?",
-        "10. Are working capital needs clearer now than before?",
-        "11. Are lender expectations and underwriting assumptions more defined now?",
-        "12. Are landlord or lease negotiations grounded enough to judge the deal realistically?",
-        "13. Do the site economics make more sense now than they did earlier?",
-        "14. Is personal guarantee exposure more fully understood now?",
-        "15. Are downside and exit scenarios clearer now than before?",
-        "16. Is more of the deal now based on facts rather than sales framing?",
-        "17. Does the opening path now look realistic rather than idealized?",
-        "18. Is the execution burden better understood now?",
-        "19. Is the actual capital requirement more grounded now?",
-        "20. Have the key assumptions been pressure-tested enough to rely on?",
-        "21. Does the deal still work if things do not go perfectly?",
-        "22. Is cost overrun risk now bounded enough to be acceptable?",
-        "23. Is ramp timing realistic enough to support a decision?",
-        "24. Is staffing readiness clearer now than it was before?",
-        "25. Is local market demand convincing enough to support the assumptions?",
-        "26. Does the actual deal still fit your operating reality?",
-        "27. Are your conditions for moving forward clearly defined now?",
-        "28. Do you feel more objectively grounded than emotionally committed at this point?",
-        "29. Are you still willing to walk away if the conditions do not hold up?",
-        "30. Is the deal now more grounded in facts than in early excitement?",
-    ]
-
-    col1, col2 = st.columns(2)
-    for i, question in enumerate(questions, start=1):
-        with col1 if i <= 15 else col2:
-            st.selectbox(question, ANSWER_OPTIONS, key=f"pd_q{i}")
-
-    st.markdown("---")
-    st.markdown("### Reflection Notes")
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
     st.text_area(
         "What looks more grounded now than it did earlier?",
@@ -365,52 +351,44 @@ def render_post_discovery():
         placeholder="Examples: rent below threshold, buildout within budget, stronger lender clarity, fewer unknowns, better downside case",
     )
 
-    score, verdict, positives, conditions, answered_count, total_questions = _score_post_discovery()
+
+def _render_results(
+    *,
+    score: int,
+    verdict: str,
+    verdict_body: str,
+    positives: list[str],
+    conditions: list[str],
+) -> None:
     st.session_state["post_discovery_score"] = score
 
-    result_class = _get_result_class(verdict)
-    metric_class = _get_metric_class(score)
-
-    st.markdown("---")
-    st.markdown(
-        f"""
-        <div class="pd-featured {result_class}">
-            <div class="pd-badge">Current Result</div>
-            <div class="pd-big">{verdict}</div>
-            <div class="pd-muted">
-                This result reflects how much of the deal now appears grounded versus how much still depends on unresolved facts or conditions.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    render_section_intro(
+        title="Current result",
+        body="This stage is about whether the remaining unknowns are acceptable, fixable, or too meaningful to ignore.",
     )
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
-    mc1, mc2 = st.columns(2)
-    with mc1:
-        st.markdown(
-            f"""
-            <div class="pd-metric {metric_class}">
-                <div class="pd-metric-label">Post-Discovery Score</div>
-                <div class="pd-metric-value">{score}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    with mc2:
-        signal = "Cleaner" if score >= 78 else "Conditional" if score >= 58 else "Weak"
-        st.markdown(
-            f"""
-            <div class="pd-metric">
-                <div class="pd-metric-label">Decision Signal</div>
-                <div class="pd-metric-value" style="font-size:1.05rem;">{signal}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+    col1, col2 = st.columns(2, gap="large")
+
+    with col1:
+        render_card(
+            label="Pre-commitment signal",
+            title=verdict,
+            body=verdict_body,
         )
 
-    c1, c2 = st.columns(2)
+    with col2:
+        render_card(
+            label="Decision posture",
+            title=_status_label(score),
+            body="A deal does not need to be perfect, but it should become more grounded as discovery progresses.",
+        )
+
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+
+    c1, c2 = st.columns(2, gap="large")
     with c1:
-        st.markdown('<div class="pd-section-title">What Looks More Grounded</div>', unsafe_allow_html=True)
+        st.markdown("### What looks more grounded")
         if positives:
             for item in positives:
                 st.write(f"- {item}")
@@ -418,26 +396,75 @@ def render_post_discovery():
             st.write("- Few elements look fully grounded yet.")
 
     with c2:
-        st.markdown('<div class="pd-section-title">Conditions Before Proceeding</div>', unsafe_allow_html=True)
+        st.markdown("### Conditions before proceeding")
         if conditions:
             for item in conditions:
                 st.write(f"- {item}")
         else:
             st.write("- No major open conditions identified yet.")
 
-    st.markdown(
-        """
-        <div class="pd-helper">
-            <div class="pd-card-title">How to use this result</div>
-            <div class="pd-muted">
-                This stage is about deciding whether the remaining unknowns are acceptable, fixable, or too meaningful to ignore.
-                A deal does not need to be perfect, but it should become more grounded as discovery progresses.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+
+    render_card(
+        label="How to use this result",
+        title="Judge the actual deal, not the earlier story.",
+        body="The right question now is whether the remaining uncertainty is acceptable and whether the real terms still support the decision.",
     )
 
-    if st.button("Continue to Final Decision", key="post_discovery_continue", use_container_width=True):
+
+def render_post_discovery() -> None:
+    score, verdict, verdict_body, positives, conditions, answered_count, total_questions = _score_post_discovery()
+
+    open_shell()
+
+    render_page_header(
+        eyebrow="Phase 2 — Pre-Commitment",
+        title="Review the real deal, not the early story.",
+        subtitle=(
+            "At this stage, the goal is to pressure test what is now known, what is still unknown, "
+            "and what must be true before a clean decision to move forward makes sense."
+        ),
+        wide=True,
+    )
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    _render_focus_cards()
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    _render_live_progress(score, verdict, answered_count, total_questions)
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    _render_question_groups()
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    _render_notes()
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    score, verdict, verdict_body, positives, conditions, answered_count, total_questions = _score_post_discovery()
+    _render_results(
+        score=score,
+        verdict=verdict,
+        verdict_body=verdict_body,
+        positives=positives,
+        conditions=conditions,
+    )
+
+    st.session_state["phase_2_complete"] = True
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    if st.button(
+        "Continue to Final Decision",
+        key="post_discovery_continue",
+        use_container_width=True,
+        type="primary",
+    ):
         st.session_state["current_page"] = "Final Decision"
         st.rerun()
+
+    close_shell()

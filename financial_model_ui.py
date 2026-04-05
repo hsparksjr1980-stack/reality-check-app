@@ -1,5 +1,7 @@
 import streamlit as st
 
+from ui_styles import close_shell, open_shell, render_page_header, render_section_intro
+
 
 def render_financial_model():
     # -----------------------------
@@ -219,8 +221,19 @@ def render_financial_model():
     # -----------------------------
     # Title / progress
     # -----------------------------
-    st.title("Financial Model")
-    st.caption("Step through each section, submit it, then review reality checks and final results together.")
+    open_shell()
+
+    render_page_header(
+        eyebrow="Phase 1 — Financial Model",
+        title="Review the economics with a practical lens.",
+        subtitle=(
+            "Step through each section, save your assumptions, and then review the "
+            "reality checks and final results together."
+        ),
+        wide=True,
+    )
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
 
     progress_cols = st.columns(7)
     progress_items = [
@@ -235,6 +248,8 @@ def render_financial_model():
     for col, (key, label) in zip(progress_cols, progress_items):
         with col:
             st.markdown(f"**{done_icon(key)} {label}**")
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
 
     # -----------------------------
     # 1) FDD Investment Range
@@ -286,7 +301,7 @@ def render_financial_model():
                 fdd_high = st.number_input("High investment", min_value=0.0, value=st.session_state["fdd_high"], step=1000.0)
             with c3:
                 fdd_franchise_fee = st.number_input("Franchise fee (if separately listed)", min_value=0.0, value=st.session_state["fdd_franchise_fee"], step=500.0)
-            submit_1 = st.form_submit_button("Save FDD Investment Range", use_container_width=True)
+            submit_1 = st.form_submit_button("Save FDD Investment Range", use_container_width=True, type="primary")
             if submit_1:
                 save_section("fdd_investment", {
                     "fdd_low": fdd_low,
@@ -362,7 +377,7 @@ def render_financial_model():
             with p7:
                 fdd_other_pct = st.number_input("Other operating expense %", min_value=0.0, max_value=100.0, value=st.session_state["fdd_other_pct"], step=0.5)
 
-            submit_2 = st.form_submit_button("Save FDD System P&L", use_container_width=True)
+            submit_2 = st.form_submit_button("Save FDD System P&L", use_container_width=True, type="primary")
             if submit_2:
                 save_section("fdd_pl", {
                     "fdd_revenue": fdd_revenue,
@@ -462,7 +477,7 @@ def render_financial_model():
                 with q3:
                     bottom25 = st.number_input("Bottom 25% revenue", min_value=0.0, value=float(st.session_state["bottom25"]), step=1000.0)
 
-            submit_3 = st.form_submit_button("Save Revenue Distribution", use_container_width=True)
+            submit_3 = st.form_submit_button("Save Revenue Distribution", use_container_width=True, type="primary")
             if submit_3:
                 save_section("fdd_distribution", {
                     "dist_mode": dist_mode,
@@ -557,7 +572,7 @@ def render_financial_model():
             with f7:
                 guarantee_fees = st.number_input("Guarantee / SBA fees", min_value=0.0, value=st.session_state["guarantee_fees"], step=500.0)
 
-            submit_4 = st.form_submit_button("Save Financing", use_container_width=True)
+            submit_4 = st.form_submit_button("Save Financing", use_container_width=True, type="primary")
             if submit_4:
                 save_section("financing", {
                     "loan_mode": loan_mode,
@@ -621,7 +636,7 @@ def render_financial_model():
             with d7:
                 ramp_speed = st.selectbox("Ramp speed", ["Fast (3 months)", "Normal (5 months)", "Slow (8 months)"], index=["Fast (3 months)","Normal (5 months)","Slow (8 months)"].index(st.session_state["ramp_speed"]))
 
-            submit_5 = st.form_submit_button("Save Deal Setup", use_container_width=True)
+            submit_5 = st.form_submit_button("Save Deal Setup", use_container_width=True, type="primary")
             if submit_5:
                 save_section("deal_setup", {
                     "schedule": schedule,
@@ -673,7 +688,7 @@ def render_financial_model():
             with s7:
                 estimate_completeness = st.selectbox("How complete is your estimate?", ["Rough guess", "Partial quotes", "Fully quoted"], index=["Rough guess","Partial quotes","Fully quoted"].index(st.session_state["estimate_completeness"]))
 
-            submit_6 = st.form_submit_button("Save Startup Assumptions", use_container_width=True)
+            submit_6 = st.form_submit_button("Save Startup Assumptions", use_container_width=True, type="primary")
             if submit_6:
                 save_section("startup", {
                     "user_buildout": user_buildout,
@@ -808,7 +823,7 @@ def render_financial_model():
             with o26:
                 leakage_pct = st.number_input("Delivery / discount leakage %", min_value=0.0, max_value=100.0, value=st.session_state["leakage_pct"], step=0.1)
 
-            submit_7 = st.form_submit_button("Save Operating Assumptions", use_container_width=True)
+            submit_7 = st.form_submit_button("Save Operating Assumptions", use_container_width=True, type="primary")
             if submit_7:
                 save_section("operating", {
                     "avg_ticket": avg_ticket,
@@ -894,9 +909,15 @@ def render_financial_model():
     all_done = all(section_done(k) for k, _ in progress_items)
 
     if all_done:
-        st.markdown("---")
-        st.header("Reality Checks")
-        st.caption("This is where your assumptions are compared against the FDD, financing pressure, and modeled startup costs.")
+        st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+        render_section_intro(
+            title="Reality Checks",
+            body=(
+                "Compare your assumptions against the FDD, financing pressure, and "
+                "modeled startup costs."
+            ),
+        )
+        st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
         st.warning(
             "**Reality check**\n"
@@ -1227,9 +1248,12 @@ def render_financial_model():
             ]
         })
 
-        st.markdown("---")
-        st.header("Results")
-        st.caption("Your monthly numbers, cash flow, and final decision.")
+        st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+        render_section_intro(
+            title="Results",
+            body="Review your monthly numbers, cash flow, and overall decision signal.",
+        )
+        st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
         modeled_monthly_debt = pmt(modeled_loan, rate, term_years)
         monthly_money_left_after_loan = monthly_profit_before_loan - modeled_monthly_debt
@@ -1500,3 +1524,8 @@ def render_financial_model():
             st.write("- No major risk flags triggered under the current assumptions, but this still needs real-world validation.")
     else:
         st.info("Complete and save each section above. Reality Checks and Results will appear once all sections are submitted.")
+
+        st.session_state["current_page"] = "Free Report"
+
+
+    close_shell()

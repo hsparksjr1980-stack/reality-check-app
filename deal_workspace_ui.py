@@ -1,16 +1,25 @@
+# deal_workspace_ui.py
 
-import streamlit as st
+from __future__ import annotations
+
 import pandas as pd
+import streamlit as st
 
 from deal_workspace_logic import (
-    init_workspace_state,
     add_row,
-    delete_row,
     calc_sources_uses,
+    delete_row,
+    init_workspace_state,
+)
+from ui_styles import (
+    close_shell,
+    open_shell,
+    render_page_header,
+    render_section_intro,
 )
 
 
-def _ensure_notes_state():
+def _ensure_notes_state() -> None:
     if "workspace_notes" not in st.session_state:
         st.session_state["workspace_notes"] = pd.DataFrame(
             columns=[
@@ -27,7 +36,7 @@ def _ensure_notes_state():
         st.session_state["workspace_general_notes"] = ""
 
 
-def _normalize_df(df, columns):
+def _normalize_df(df: pd.DataFrame | None, columns: list[str]) -> pd.DataFrame:
     if df is None or not isinstance(df, pd.DataFrame):
         return pd.DataFrame(columns=columns)
 
@@ -40,11 +49,16 @@ def _normalize_df(df, columns):
     return working[columns]
 
 
-def _save_workspace_message():
+def _save_workspace_message() -> None:
     st.success("Workspace changes saved to this session.")
 
 
-def _table_editor(state_key, columns, title):
+def _render_tab_intro(title: str, body: str) -> None:
+    render_section_intro(title=title, body=body)
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+
+
+def _table_editor(state_key: str, columns: list[str], title: str) -> None:
     st.markdown(f"### {title}")
     st.caption(
         "Press Enter after editing a cell so the value is committed before switching tabs or pages."
@@ -62,9 +76,14 @@ def _table_editor(state_key, columns, title):
 
     st.session_state[state_key] = edited.copy()
 
-    c1, c2, c3 = st.columns([1, 1, 1])
+    c1, c2, c3 = st.columns(3, gap="medium")
+
     with c1:
-        if st.button(f"Add row to {title}", key=f"add_{state_key}"):
+        if st.button(
+            f"Add row to {title}",
+            key=f"add_{state_key}",
+            use_container_width=True,
+        ):
             st.session_state[state_key] = add_row(
                 st.session_state[state_key],
                 columns,
@@ -72,19 +91,30 @@ def _table_editor(state_key, columns, title):
             st.rerun()
 
     with c2:
-        if st.button("Delete last row", key=f"del_{state_key}"):
+        if st.button(
+            "Delete last row",
+            key=f"del_{state_key}",
+            use_container_width=True,
+        ):
             st.session_state[state_key] = delete_row(st.session_state[state_key])
             st.rerun()
 
     with c3:
-        if st.button("Save table changes", key=f"save_{state_key}"):
+        if st.button(
+            "Save table changes",
+            key=f"save_{state_key}",
+            use_container_width=True,
+            type="primary",
+        ):
             st.session_state[state_key] = edited.copy()
             _save_workspace_message()
 
 
-def _render_notes_tab():
-    st.subheader("Notes & Follow-Ups")
-    st.caption("Track open items, risks, reminders, and things to revisit later.")
+def _render_notes_tab() -> None:
+    _render_tab_intro(
+        "Notes & Follow-Ups",
+        "Track open items, risks, reminders, and anything that needs a follow-up decision.",
+    )
 
     notes_cols = [
         "Priority",
@@ -119,15 +149,16 @@ def _render_notes_tab():
             .sum()
         )
 
-        c1, c2 = st.columns(2)
+        c1, c2 = st.columns(2, gap="medium")
         with c1:
             st.metric("Open Notes", int(open_count))
         with c2:
             st.metric("High Priority", int(high_count))
 
+        st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
         st.markdown("### Filtered View")
 
-        f1, f2 = st.columns(2)
+        f1, f2 = st.columns(2, gap="large")
         with f1:
             status_options = ["All"] + sorted(
                 [
@@ -168,6 +199,7 @@ def _render_notes_tab():
 
         st.dataframe(filtered, use_container_width=True, hide_index=True)
 
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
     st.markdown("### General Notes")
     general_notes = st.text_area(
         "Use this for broader notes that do not belong to one specific row.",
@@ -177,26 +209,43 @@ def _render_notes_tab():
     )
     st.session_state["workspace_general_notes"] = general_notes
 
-    if st.button("Save general notes", key="save_general_notes"):
+    if st.button(
+        "Save general notes",
+        key="save_general_notes",
+        use_container_width=True,
+        type="primary",
+    ):
         st.session_state["workspace_general_notes"] = general_notes
         _save_workspace_message()
 
 
-def render_deal_workspace():
-    st.header("Deal Workspace (Pro)")
-    st.caption(
-        "Track lenders, partners, quotes, lease terms, and follow-up notes. "
-        "This feeds your Sources & Uses and the 3-year model."
-    )
-
+def render_deal_workspace() -> None:
     init_workspace_state()
     _ensure_notes_state()
 
+    open_shell()
+
+    render_page_header(
+        eyebrow="Execution — Deal Workspace",
+        title="Organize the deal details in one working area.",
+        subtitle=(
+            "Track funding, quotes, lease terms, sources and uses, and follow-up notes "
+            "without changing the underlying worksheet flow."
+        ),
+        wide=True,
+    )
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
     tabs = st.tabs(["Funding", "Quotes", "Lease", "Sources & Uses", "Notes"])
 
-    # ---------- FUNDING ----------
     with tabs[0]:
-        st.subheader("Debt (Lenders)")
+        _render_tab_intro(
+            "Funding",
+            "Track lender options, equity sources, and the selected structure you want used in the downstream modeling.",
+        )
+
+        st.markdown("### Debt (Lenders)")
         debt_cols = [
             "Bank / Lender",
             "Product (SBA/Conventional/Private)",
@@ -212,7 +261,9 @@ def render_deal_workspace():
         ]
         _table_editor("funding_debt", debt_cols, "Lender Options")
 
-        st.subheader("Equity (Partners / Investors)")
+        st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+        st.markdown("### Equity (Partners / Investors)")
         eq_cols = [
             "Partner / Investor",
             "Equity Amount",
@@ -226,10 +277,12 @@ def render_deal_workspace():
         ]
         _table_editor("funding_equity", eq_cols, "Equity Stack")
 
-        st.subheader("Selected Structure (what you're actually using)")
+        st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+        st.markdown("### Selected Structure")
         st.info("Set the lender terms you want used in Sources & Uses and the Deal Model.")
 
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3 = st.columns(3, gap="large")
         with c1:
             selected_loan = st.number_input(
                 "Selected Loan Amount",
@@ -264,16 +317,24 @@ def render_deal_workspace():
         )
         st.session_state["funding_quick_note"] = funding_note
 
-        if st.button("Save funding changes", key="save_funding_changes"):
+        if st.button(
+            "Save funding changes",
+            key="save_funding_changes",
+            use_container_width=True,
+            type="primary",
+        ):
             st.session_state["selected_loan"] = float(selected_loan)
             st.session_state["selected_rate"] = float(selected_rate)
             st.session_state["selected_term"] = float(selected_term)
             st.session_state["funding_quick_note"] = funding_note
             _save_workspace_message()
 
-    # ---------- QUOTES ----------
     with tabs[1]:
-        st.subheader("Buildout & Vendor Quotes")
+        _render_tab_intro(
+            "Quotes",
+            "Capture buildout and vendor quotes so the workspace can carry cleaner cost assumptions forward.",
+        )
+
         quote_cols = [
             "Category (GC/Equipment/Signage/Arch/Permits)",
             "Vendor",
@@ -295,6 +356,7 @@ def render_deal_workspace():
 
         st.session_state["total_quotes"] = float(total_quotes)
 
+        st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
         st.markdown("### Totals")
         st.metric("Total Quotes", f"${total_quotes:,.0f}")
 
@@ -306,14 +368,22 @@ def render_deal_workspace():
         )
         st.session_state["quotes_quick_note"] = quotes_note
 
-        if st.button("Save quotes changes", key="save_quotes_changes"):
+        if st.button(
+            "Save quotes changes",
+            key="save_quotes_changes",
+            use_container_width=True,
+            type="primary",
+        ):
             st.session_state["total_quotes"] = float(total_quotes)
             st.session_state["quotes_quick_note"] = quotes_note
             _save_workspace_message()
 
-    # ---------- LEASE ----------
     with tabs[2]:
-        st.subheader("Lease Options")
+        _render_tab_intro(
+            "Lease",
+            "Compare lease options and select the rent structure you want carried into the model.",
+        )
+
         lease_cols = [
             "Property / Landlord",
             "Rent (Monthly)",
@@ -330,8 +400,10 @@ def render_deal_workspace():
         ]
         _table_editor("leases", lease_cols, "Lease Comparison")
 
-        st.markdown("### Selected Lease (used in model)")
-        c1, c2, c3 = st.columns(3)
+        st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+        st.markdown("### Selected Lease")
+        c1, c2, c3 = st.columns(3, gap="large")
         with c1:
             sel_rent = st.number_input(
                 "Selected Rent",
@@ -366,18 +438,25 @@ def render_deal_workspace():
         )
         st.session_state["lease_quick_note"] = lease_note
 
-        if st.button("Save lease changes", key="save_lease_changes"):
+        if st.button(
+            "Save lease changes",
+            key="save_lease_changes",
+            use_container_width=True,
+            type="primary",
+        ):
             st.session_state["selected_rent"] = float(sel_rent)
             st.session_state["selected_nnn"] = float(sel_nnn)
             st.session_state["selected_ti"] = float(sel_ti)
             st.session_state["lease_quick_note"] = lease_note
             _save_workspace_message()
 
-    # ---------- SOURCES & USES ----------
     with tabs[3]:
-        st.subheader("Sources & Uses (Auto)")
+        _render_tab_intro(
+            "Sources & Uses",
+            "Review the auto-calculated funding picture using the current quote, lease, debt, and equity selections.",
+        )
 
-        c_override1, c_override2 = st.columns(2)
+        c_override1, c_override2 = st.columns(2, gap="large")
         with c_override1:
             working_cap = st.number_input(
                 "Working Capital Override",
@@ -402,9 +481,9 @@ def render_deal_workspace():
 
         su = calc_sources_uses(st.session_state)
 
-        c1, c2 = st.columns(2)
+        c1, c2 = st.columns(2, gap="large")
         with c1:
-            st.markdown("#### Uses")
+            st.markdown("### Uses")
             st.write(f"- Buildout / Quotes: ${su['uses_quotes']:,.0f}")
             st.write(f"- Less TI Allowance: -${su['ti']:,.0f}")
             st.write(f"- Net Buildout: ${su['net_buildout']:,.0f}")
@@ -413,11 +492,12 @@ def render_deal_workspace():
             st.markdown(f"**Total Uses: ${su['total_uses']:,.0f}**")
 
         with c2:
-            st.markdown("#### Sources")
+            st.markdown("### Sources")
             st.write(f"- Debt (Selected): ${su['debt']:,.0f}")
             st.write(f"- Equity (Partners): ${su['equity']:,.0f}")
             st.markdown(f"**Total Sources: ${su['total_sources']:,.0f}**")
 
+        st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
         st.markdown("### Funding Gap")
         gap = su["gap"]
         if gap > 0:
@@ -438,7 +518,12 @@ def render_deal_workspace():
         )
         st.session_state["su_quick_note"] = su_note
 
-        if st.button("Save Sources & Uses changes", key="save_su_changes"):
+        if st.button(
+            "Save Sources & Uses changes",
+            key="save_su_changes",
+            use_container_width=True,
+            type="primary",
+        ):
             st.session_state["working_cap_override"] = float(working_cap)
             st.session_state["contingency_pct_override"] = float(contingency_pct)
             st.session_state["su_quick_note"] = su_note
@@ -448,6 +533,18 @@ def render_deal_workspace():
             st.session_state["su_net_buildout"] = su["net_buildout"]
             _save_workspace_message()
 
-    # ---------- NOTES ----------
     with tabs[4]:
         _render_notes_tab()
+
+        st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    if st.button(
+        "Open Execution Report",
+        key="deal_workspace_open_execution_report",
+        use_container_width=True,
+        type="primary",
+    ):
+        st.session_state["current_page"] = "Execution Report"
+        st.rerun()
+
+    close_shell()

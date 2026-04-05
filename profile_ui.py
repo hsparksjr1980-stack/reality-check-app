@@ -1,133 +1,121 @@
+# profile_ui.py
+
+from __future__ import annotations
 
 import streamlit as st
 
+from ui_styles import (
+    close_shell,
+    open_shell,
+    render_card,
+    render_page_header,
+    render_section_intro,
+)
 
-def _inject_styles() -> None:
-    st.markdown(
-        """
-        <style>
-        .pf-hero {
-            border: 1px solid rgba(120,120,120,.25);
-            border-radius: 20px;
-            padding: 1.3rem 1.3rem 1rem 1.3rem;
-            margin-bottom: 1rem;
-            background: rgba(255,255,255,.02);
-        }
-        .pf-kicker {
-            font-size: 0.82rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            opacity: 0.72;
-            margin-bottom: 0.4rem;
-        }
-        .pf-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            line-height: 1.15;
-            margin-bottom: 0.45rem;
-        }
-        .pf-subtitle {
-            font-size: 1rem;
-            opacity: 0.92;
-        }
-        .pf-card {
-            border: 1px solid rgba(120,120,120,.22);
-            border-radius: 18px;
-            padding: 1rem;
-            background: rgba(255,255,255,.02);
-            margin-bottom: 1rem;
-        }
-        .pf-card-title {
-            font-size: 1.08rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-        .pf-muted {
-            opacity: 0.84;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+
+UNITS_OPTIONS = ["1", "2-3", "4+"]
+OWNERSHIP_OPTIONS = [
+    "Owner-Operator",
+    "Manager-Led",
+    "Investor / Semi-Absentee",
+]
+
+
+def _get_index(options: list[str], value: str, default: str) -> int:
+    selected = value if value in options else default
+    return options.index(selected)
+
+
+def _complete_profile() -> None:
+    st.session_state["profile_complete"] = True
+    st.session_state["current_page"] = "Overview"
+    st.rerun()
 
 
 def render_profile_setup() -> None:
-    _inject_styles()
+    open_shell()
 
-    st.title("Profile Setup")
-
-    st.markdown(
-        """
-        <div class="pf-hero">
-            <div class="pf-kicker">Getting Started</div>
-            <div class="pf-title">Set up your profile before starting the evaluation.</div>
-            <div class="pf-subtitle">
-                This creates the basic context for the assessment so the app can guide the decision flow more cleanly.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    render_page_header(
+        eyebrow="Getting Started",
+        title="Set up your profile before starting the evaluation.",
+        subtitle=(
+            "Provide a few basics so the assessment can guide your decision flow "
+            "with better context."
+        ),
+        wide=True,
     )
 
-    st.markdown(
-        """
-        <div class="pf-card">
-            <div class="pf-card-title">Basic Information</div>
-            <div class="pf-muted">
-                Keep this simple for now. You can expand it later.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    render_section_intro(
+        title="Basic Information",
+        body="Keep this simple for now. You can refine details later.",
     )
 
-    col1, col2 = st.columns(2)
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
-    with col1:
+    info_col_1, info_col_2 = st.columns(2, gap="large")
+
+    with info_col_1:
         st.text_input(
             "Full Name",
             value=st.session_state.get("full_name", ""),
             key="full_name",
+            placeholder="Enter your full name",
         )
         st.text_input(
             "Email",
             value=st.session_state.get("email", ""),
             key="email",
+            placeholder="Enter your email",
         )
         st.text_input(
             "City / State",
             value=st.session_state.get("city_state", ""),
             key="city_state",
+            placeholder="City, State",
         )
 
-    with col2:
+    with info_col_2:
         st.text_input(
             "Franchise or Concept Name",
             value=st.session_state.get("franchise_name", ""),
             key="franchise_name",
+            placeholder="Enter franchise or concept name",
         )
         st.selectbox(
             "Units Considered",
-            ["1", "2-3", "4+"],
-            index=["1", "2-3", "4+"].index(st.session_state.get("units_considered", "1"))
-            if st.session_state.get("units_considered", "1") in ["1", "2-3", "4+"]
-            else 0,
+            UNITS_OPTIONS,
+            index=_get_index(
+                UNITS_OPTIONS,
+                st.session_state.get("units_considered", "1"),
+                "1",
+            ),
             key="units_considered",
         )
         st.selectbox(
             "Ownership Style",
-            ["Owner-Operator", "Manager-Led", "Investor / Semi-Absentee"],
-            index=["Owner-Operator", "Manager-Led", "Investor / Semi-Absentee"].index(
-                st.session_state.get("ownership_style", "Owner-Operator")
-            )
-            if st.session_state.get("ownership_style", "Owner-Operator") in [
+            OWNERSHIP_OPTIONS,
+            index=_get_index(
+                OWNERSHIP_OPTIONS,
+                st.session_state.get("ownership_style", "Owner-Operator"),
                 "Owner-Operator",
-                "Manager-Led",
-                "Investor / Semi-Absentee",
-            ]
-            else 0,
+            ),
             key="ownership_style",
         )
+
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+
+    render_card(
+        label="Commitment Check",
+        title="Current process status",
+        body=(
+            "Indicate whether you have already signed documents or made a material "
+            "commitment in the process."
+        ),
+    )
+
+    st.markdown('<div class="rc-gap-sm"></div>', unsafe_allow_html=True)
 
     st.checkbox(
         "I have already signed something or materially committed in the process",
@@ -135,7 +123,20 @@ def render_profile_setup() -> None:
         key="signed_anything",
     )
 
-    if st.button("Continue", key="profile_setup_continue", use_container_width=True):
-        st.session_state["profile_complete"] = True
-        st.session_state["current_page"] = "Overview"
-        st.rerun()
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    action_col_1, action_col_2 = st.columns([1, 1], gap="large")
+
+    with action_col_1:
+        if st.button(
+            "Continue",
+            key="profile_setup_continue",
+            use_container_width=True,
+            type="primary",
+        ):
+            _complete_profile()
+
+    with action_col_2:
+        st.caption("You can update these details later.")
+
+    close_shell()

@@ -1,28 +1,39 @@
-import streamlit as st
-import pandas as pd
+# deal_model_ui.py
 
-from deal_workspace_logic import calc_sources_uses
+from __future__ import annotations
+
+import pandas as pd
+import streamlit as st
+
 from deal_model_logic import (
     MONTH_LABELS,
     build_3year_forecast,
-    build_pnl,
-    build_monthly_pnl_views,
     build_balance_sheet_summary,
+    build_monthly_pnl_views,
+    build_pnl,
     calculate_metrics,
     run_downside_case,
     what_breaks_first,
 )
+from deal_workspace_logic import calc_sources_uses
+from ui_styles import (
+    close_shell,
+    open_shell,
+    render_card,
+    render_page_header,
+    render_section_intro,
+)
 
 
-def pct(x):
+def pct(x: float) -> str:
     return f"{x * 100:,.1f}%"
 
 
-def money(x):
+def money(x: float) -> str:
     return f"${x:,.0f}"
 
 
-def _safe_float(value, fallback=0.0):
+def _safe_float(value, fallback: float = 0.0) -> float:
     try:
         if value is None or value == "":
             return float(fallback)
@@ -31,11 +42,11 @@ def _safe_float(value, fallback=0.0):
         return float(fallback)
 
 
-def _get_default(session_key, fm_key, fallback):
+def _get_default(session_key: str, fm_key: str, fallback):
     return st.session_state.get(session_key, st.session_state.get(fm_key, fallback))
 
 
-def _init_monthly_plan():
+def _init_monthly_plan() -> None:
     if "deal_monthly_plan" not in st.session_state:
         st.session_state["deal_monthly_plan"] = pd.DataFrame(
             {
@@ -47,7 +58,15 @@ def _init_monthly_plan():
         )
 
 
-def _make_number_input(label, key, value, step=100.0, min_value=0.0, max_value=None, fmt=None):
+def _make_number_input(
+    label: str,
+    key: str,
+    value,
+    step=100.0,
+    min_value=0.0,
+    max_value=None,
+    fmt: str | None = None,
+):
     kwargs = {
         "label": label,
         "min_value": min_value,
@@ -62,31 +81,46 @@ def _make_number_input(label, key, value, step=100.0, min_value=0.0, max_value=N
     return st.number_input(**kwargs)
 
 
-def render_deal_model():
-    st.header("Deal Model (Pro)")
-    st.caption(
-        "Build a 3-year deal-level P&L using either annual revenue or tickets, "
-        "with optional monthly seasonality and per-bucket YoY growth."
+def _render_workspace_metrics(su: dict) -> None:
+    render_section_intro(
+        title="Live inputs from Deal Workspace",
+        body="These values are being pulled into the model from the workspace so the forecast stays connected to the current deal structure.",
     )
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
-    _init_monthly_plan()
-    su = calc_sources_uses(st.session_state)
-
-    st.markdown("### Live Inputs From Deal Workspace")
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4 = st.columns(4, gap="medium")
     with c1:
-        st.metric("Total Uses", money(su["total_uses"]))
+        render_card(
+            label="Sources & Uses",
+            title=money(su["total_uses"]),
+            body="Total uses currently flowing in from the workspace.",
+        )
     with c2:
-        st.metric("Total Sources", money(su["total_sources"]))
+        render_card(
+            label="Funding",
+            title=money(su["total_sources"]),
+            body="Total debt and equity sources currently selected.",
+        )
     with c3:
-        st.metric("Funding Gap", money(su["gap"]))
+        render_card(
+            label="Gap",
+            title=money(su["gap"]),
+            body="Positive values indicate additional funding is still needed.",
+        )
     with c4:
-        st.metric("Monthly Debt Payment", money(su["debt_payment"]))
+        render_card(
+            label="Debt service",
+            title=money(su["debt_payment"]),
+            body="Estimated monthly debt payment from the selected structure.",
+        )
 
-    # -----------------------------
-    # Revenue Setup
-    # -----------------------------
-    st.markdown("### Revenue Setup")
+
+def _render_revenue_setup():
+    render_section_intro(
+        title="Revenue setup",
+        body="Choose how Year 1 revenue should be built, then decide whether the forecast should stay flat or use a monthly plan.",
+    )
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
     revenue_mode = st.radio(
         "Revenue setup mode",
@@ -105,6 +139,11 @@ def render_deal_model():
     revenue_mode_internal = "annual_revenue" if revenue_mode == "Annual Revenue" else "annual_tickets"
     forecast_mode_internal = "flat" if forecast_mode == "Flat Monthly" else "seasonal"
 
+    annual_revenue = 0.0
+    annual_tickets = 0.0
+    avg_ticket = 0.0
+    seasonality_mode_internal = "monthly_revenue"
+
     if forecast_mode_internal == "flat":
         if revenue_mode_internal == "annual_revenue":
             annual_revenue = _make_number_input(
@@ -113,18 +152,15 @@ def render_deal_model():
                 float(_get_default("deal_annual_revenue", "fm_target_monthly_revenue", 120000.0) * 12),
                 step=10000.0,
             )
-            annual_tickets = 0.0
-            avg_ticket = 0.0
             implied_monthly_revenue = annual_revenue / 12
 
-            m1, m2 = st.columns(2)
+            m1, m2 = st.columns(2, gap="large")
             with m1:
                 st.metric("Monthly Revenue", money(implied_monthly_revenue))
             with m2:
                 st.metric("Annual Revenue", money(annual_revenue))
-
         else:
-            col1, col2 = st.columns(2)
+            col1, col2 = st.columns(2, gap="large")
             with col1:
                 annual_tickets = _make_number_input(
                     "Annual Tickets",
@@ -143,12 +179,11 @@ def render_deal_model():
             annual_revenue = annual_tickets * avg_ticket
             implied_monthly_revenue = annual_revenue / 12
 
-            m1, m2 = st.columns(2)
+            m1, m2 = st.columns(2, gap="large")
             with m1:
                 st.metric("Annual Revenue", money(annual_revenue))
             with m2:
                 st.metric("Monthly Revenue", money(implied_monthly_revenue))
-
     else:
         seasonality_mode = st.radio(
             "Seasonal monthly input",
@@ -173,8 +208,6 @@ def render_deal_model():
             plan_df["Tickets"] = 0.0
             plan_df["Avg Ticket"] = 0.0
             annual_revenue = float(plan_df["Revenue"].sum())
-            annual_tickets = 0.0
-            avg_ticket = 0.0
             st.metric("Year 1 Revenue from Monthly Plan", money(annual_revenue))
         else:
             st.caption("Enter monthly tickets and average ticket by month.")
@@ -195,40 +228,60 @@ def render_deal_model():
             st.metric("Year 1 Revenue from Monthly Plan", money(annual_revenue))
 
         st.session_state["deal_monthly_plan"] = plan_df
+
     if forecast_mode_internal == "flat":
         seasonality_mode_internal = "monthly_revenue"
 
-    ramp_months = _make_number_input(
-        "Ramp Months",
-        "deal_ramp_months_input",
-        int(_get_default("deal_ramp_months", "fm_ramp_months", 6)),
-        step=1,
-        min_value=1,
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns(3, gap="large")
+    with c1:
+        ramp_months = _make_number_input(
+            "Ramp Months",
+            "deal_ramp_months_input",
+            int(_get_default("deal_ramp_months", "fm_ramp_months", 6)),
+            step=1,
+            min_value=1,
+        )
+    with c2:
+        starting_cash = _make_number_input(
+            "Starting Cash Buffer",
+            "deal_starting_cash_input",
+            float(_get_default("deal_starting_cash", "fm_starting_cash", 50000.0)),
+            step=1000.0,
+        )
+    with c3:
+        revenue_growth_pct = _make_number_input(
+            "Revenue Growth % YoY",
+            "deal_revenue_growth_pct_input",
+            float(st.session_state.get("deal_revenue_growth_pct", 0.03)),
+            step=0.01,
+            min_value=0.0,
+            max_value=1.0,
+            fmt="%.2f",
+        )
+
+    return {
+        "revenue_mode_internal": revenue_mode_internal,
+        "forecast_mode_internal": forecast_mode_internal,
+        "seasonality_mode_internal": seasonality_mode_internal,
+        "annual_revenue": float(annual_revenue),
+        "annual_tickets": float(annual_tickets),
+        "avg_ticket": float(avg_ticket),
+        "ramp_months": int(ramp_months),
+        "starting_cash": float(starting_cash),
+        "revenue_growth_pct": float(revenue_growth_pct),
+    }
+
+
+def _render_variable_expenses():
+    render_section_intro(
+        title="Variable expense assumptions",
+        body="Set the core variable expense assumptions that should scale with revenue in the forecast.",
     )
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
-    starting_cash = _make_number_input(
-        "Starting Cash Buffer",
-        "deal_starting_cash_input",
-        float(_get_default("deal_starting_cash", "fm_starting_cash", max(su["working_cap"], 50000.0))),
-        step=1000.0,
-    )
-
-    revenue_growth_pct = _make_number_input(
-        "Revenue Growth % YoY",
-        "deal_revenue_growth_pct_input",
-        float(st.session_state.get("deal_revenue_growth_pct", 0.03)),
-        step=0.01,
-        min_value=0.0,
-        max_value=1.0,
-        fmt="%.2f",
-    )
-
-    # -----------------------------
-    # Variable Expense Assumptions
-    # -----------------------------
-    st.markdown("### Variable Expense Assumptions")
-
-    v1, v2, v3, v4, v5, v6 = st.columns(6)
+    v1, v2, v3, v4, v5, v6 = st.columns(6, gap="medium")
     with v1:
         cogs_pct = _make_number_input(
             "COGS %",
@@ -290,15 +343,27 @@ def render_deal_model():
             fmt="%.2f",
         )
 
-    # -----------------------------
-    # Occupancy / Fixed Costs
-    # -----------------------------
-    st.markdown("### Occupancy, Utilities & Fixed Costs")
+    return {
+        "cogs_pct": float(cogs_pct),
+        "royalty_pct": float(royalty_pct),
+        "marketing_pct": float(marketing_pct),
+        "merchant_pct": float(merchant_pct),
+        "leakage_pct": float(leakage_pct),
+        "labor_pct": float(labor_pct),
+    }
+
+
+def _render_fixed_costs():
+    render_section_intro(
+        title="Occupancy, utilities, and fixed costs",
+        body="Use the current workspace selections where available, then refine the monthly fixed-cost structure for a more realistic P&L.",
+    )
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
     workspace_rent = _safe_float(st.session_state.get("selected_rent", 0.0))
     workspace_nnn = _safe_float(st.session_state.get("selected_nnn", 0.0))
 
-    o1, o2, o3, o4 = st.columns(4)
+    o1, o2, o3, o4 = st.columns(4, gap="medium")
     with o1:
         base_rent = _make_number_input(
             "Base Rent",
@@ -318,7 +383,7 @@ def render_deal_model():
     with o4:
         gas = _make_number_input("Gas", "deal_gas_input", float(st.session_state.get("deal_gas", st.session_state.get("gas", 150.0))), step=25.0)
 
-    o5, o6, o7, o8 = st.columns(4)
+    o5, o6, o7, o8 = st.columns(4, gap="medium")
     with o5:
         water = _make_number_input("Water", "deal_water_input", float(st.session_state.get("deal_water", st.session_state.get("water", 100.0))), step=10.0)
     with o6:
@@ -328,7 +393,7 @@ def render_deal_model():
     with o8:
         internet = _make_number_input("Internet", "deal_internet_input", float(st.session_state.get("deal_internet", st.session_state.get("internet", 120.0))), step=10.0)
 
-    o9, o10, o11, o12 = st.columns(4)
+    o9, o10, o11, o12 = st.columns(4, gap="medium")
     with o9:
         phone = _make_number_input("Phone", "deal_phone_input", float(st.session_state.get("deal_phone", st.session_state.get("phone", 80.0))), step=10.0)
     with o10:
@@ -338,7 +403,7 @@ def render_deal_model():
     with o12:
         admin_misc = _make_number_input("Admin / Misc", "deal_admin_misc_input", float(st.session_state.get("deal_admin_misc", st.session_state.get("admin_misc", 500.0))), step=25.0)
 
-    o13, o14, o15 = st.columns(3)
+    o13, o14, o15 = st.columns(3, gap="medium")
     with o13:
         workers_comp = _make_number_input("Workers Comp", "deal_workers_comp_input", float(st.session_state.get("deal_workers_comp", st.session_state.get("workers_comp", 250.0))), step=25.0)
     with o14:
@@ -351,22 +416,45 @@ def render_deal_model():
     insurance = workers_comp + property_ins
     other_fixed = utilities + insurance + tech + repairs + admin_misc + owner_comp
 
-    s1, s2, s3, s4 = st.columns(4)
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+
+    s1, s2, s3, s4 = st.columns(4, gap="medium")
     with s1:
-        st.metric("Occupancy", money(occupancy))
+        render_card(label="Monthly summary", title=money(occupancy), body="Occupancy cost including base rent and CAM / NNN.")
     with s2:
-        st.metric("Utilities", money(utilities))
+        render_card(label="Utilities", title=money(utilities), body="Combined monthly utilities flowing into the model.")
     with s3:
-        st.metric("Insurance", money(insurance))
+        render_card(label="Insurance", title=money(insurance), body="Workers comp and property insurance combined.")
     with s4:
-        st.metric("Other Fixed", money(other_fixed))
+        render_card(label="Other fixed", title=money(other_fixed), body="Tech, repairs, admin, and owner comp combined.")
 
-    # -----------------------------
-    # YoY Growth
-    # -----------------------------
-    st.markdown("### YoY Growth by Bucket")
+    return {
+        "base_rent": float(base_rent),
+        "cam": float(cam),
+        "electric": float(electric),
+        "gas": float(gas),
+        "water": float(water),
+        "sewer": float(sewer),
+        "trash": float(trash),
+        "internet": float(internet),
+        "phone": float(phone),
+        "workers_comp": float(workers_comp),
+        "property_ins": float(property_ins),
+        "tech": float(tech),
+        "repairs": float(repairs),
+        "admin_misc": float(admin_misc),
+        "owner_comp": float(owner_comp),
+    }
 
-    g1, g2, g3, g4 = st.columns(4)
+
+def _render_growth_inputs():
+    render_section_intro(
+        title="Year-over-year growth by bucket",
+        body="Set how major line items should grow after Year 1 so the 3-year forecast reflects a more realistic operating path.",
+    )
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+
+    g1, g2, g3, g4 = st.columns(4, gap="medium")
     with g1:
         cogs_growth_pct = _make_number_input("COGS Growth %", "deal_cogs_growth_pct_input", float(st.session_state.get("deal_cogs_growth_pct", 0.03)), step=0.01, min_value=0.0, max_value=1.0, fmt="%.2f")
     with g2:
@@ -376,7 +464,7 @@ def render_deal_model():
     with g4:
         marketing_growth_pct = _make_number_input("Marketing Growth %", "deal_marketing_growth_pct_input", float(st.session_state.get("deal_marketing_growth_pct", 0.03)), step=0.01, min_value=0.0, max_value=1.0, fmt="%.2f")
 
-    g5, g6, g7, g8 = st.columns(4)
+    g5, g6, g7, g8 = st.columns(4, gap="medium")
     with g5:
         merchant_growth_pct = _make_number_input("Merchant Growth %", "deal_merchant_growth_pct_input", float(st.session_state.get("deal_merchant_growth_pct", 0.03)), step=0.01, min_value=0.0, max_value=1.0, fmt="%.2f")
     with g6:
@@ -386,7 +474,7 @@ def render_deal_model():
     with g8:
         utilities_growth_pct = _make_number_input("Utilities Growth %", "deal_utilities_growth_pct_input", float(st.session_state.get("deal_utilities_growth_pct", 0.03)), step=0.01, min_value=0.0, max_value=1.0, fmt="%.2f")
 
-    g9, g10, g11, g12 = st.columns(4)
+    g9, g10, g11, g12 = st.columns(4, gap="medium")
     with g9:
         insurance_growth_pct = _make_number_input("Insurance Growth %", "deal_insurance_growth_pct_input", float(st.session_state.get("deal_insurance_growth_pct", 0.03)), step=0.01, min_value=0.0, max_value=1.0, fmt="%.2f")
     with g10:
@@ -406,39 +494,7 @@ def render_deal_model():
         fmt="%.2f",
     )
 
-    inputs = {
-        "revenue_mode": revenue_mode_internal,
-        "forecast_mode": forecast_mode_internal,
-        "seasonality_mode": seasonality_mode_internal,
-        "annual_revenue": float(annual_revenue),
-        "annual_tickets": float(annual_tickets),
-        "avg_ticket": float(avg_ticket),
-        "monthly_plan": st.session_state.get("deal_monthly_plan").copy(),
-        "ramp_months": int(ramp_months),
-        "starting_cash": float(starting_cash),
-        "revenue_growth_pct": float(revenue_growth_pct),
-        "cogs_pct": float(cogs_pct),
-        "labor_pct": float(labor_pct),
-        "royalty_pct": float(royalty_pct),
-        "marketing_pct": float(marketing_pct),
-        "merchant_pct": float(merchant_pct),
-        "leakage_pct": float(leakage_pct),
-        "base_rent": float(base_rent),
-        "cam": float(cam),
-        "electric": float(electric),
-        "gas": float(gas),
-        "water": float(water),
-        "sewer": float(sewer),
-        "trash": float(trash),
-        "internet": float(internet),
-        "phone": float(phone),
-        "workers_comp": float(workers_comp),
-        "property_ins": float(property_ins),
-        "tech": float(tech),
-        "repairs": float(repairs),
-        "admin_misc": float(admin_misc),
-        "owner_comp": float(owner_comp),
-        "debt_payment": float(su["debt_payment"]),
+    return {
         "cogs_growth_pct": float(cogs_growth_pct),
         "labor_growth_pct": float(labor_growth_pct),
         "royalty_growth_pct": float(royalty_growth_pct),
@@ -454,104 +510,218 @@ def render_deal_model():
         "owner_comp_growth_pct": float(owner_comp_growth_pct),
     }
 
-    # persist
-    for k, v in inputs.items():
-        if k != "monthly_plan":
-            st.session_state[f"deal_{k}"] = v
 
-    if st.button("Build 3-Year Deal Model", type="primary"):
-        df = build_3year_forecast(inputs)
-        pnl = build_pnl(df)
-        monthly_pnls = build_monthly_pnl_views(df)
-        bs = build_balance_sheet_summary(df, inputs, su)
-        metrics = calculate_metrics(df, inputs, su)
+def _persist_inputs(inputs: dict) -> None:
+    for key, value in inputs.items():
+        if key != "monthly_plan":
+            st.session_state[f"deal_{key}"] = value
 
-        df_down, metrics_down = run_downside_case(inputs, su)
-        breakpoints = what_breaks_first(metrics, metrics_down, su, inputs)
 
-        st.session_state["deal_model_df"] = df
-        st.session_state["deal_model_pnl"] = pnl
-        st.session_state["deal_model_monthly_pnls"] = monthly_pnls
-        st.session_state["deal_model_bs"] = bs
-        st.session_state["deal_model_downside_df"] = df_down
-        st.session_state["deal_model_breakpoints"] = breakpoints
+def _build_and_render_results(inputs: dict, su: dict) -> None:
+    df = build_3year_forecast(inputs)
+    pnl = build_pnl(df)
+    monthly_pnls = build_monthly_pnl_views(df)
+    bs = build_balance_sheet_summary(df, inputs, su)
+    metrics = calculate_metrics(df, inputs, su)
 
-        st.session_state["deal_model_roi"] = metrics["roi"]
-        st.session_state["deal_model_payback"] = metrics["payback_month"]
-        st.session_state["deal_model_break_even_month"] = metrics["break_even_month"]
-        st.session_state["deal_model_lowest_cash"] = metrics["lowest_cash"]
-        st.session_state["deal_model_lowest_cash_month"] = metrics["lowest_cash_month"]
-        st.session_state["deal_model_dscr"] = metrics["dscr"]
-        st.session_state["deal_model_equity_at_risk"] = metrics["equity_at_risk"]
-        st.session_state["deal_model_stabilized_monthly_net"] = metrics["stabilized_monthly_net"]
+    df_down, metrics_down = run_downside_case(inputs, su)
+    breakpoints = what_breaks_first(metrics, metrics_down, su, inputs)
 
-        st.session_state["deal_model_downside_roi"] = metrics_down["roi"]
-        st.session_state["deal_model_downside_payback"] = metrics_down["payback_month"]
-        st.session_state["deal_model_downside_break_even_month"] = metrics_down["break_even_month"]
-        st.session_state["deal_model_downside_lowest_cash"] = metrics_down["lowest_cash"]
+    st.session_state["deal_model_df"] = df
+    st.session_state["deal_model_pnl"] = pnl
+    st.session_state["deal_model_monthly_pnls"] = monthly_pnls
+    st.session_state["deal_model_bs"] = bs
+    st.session_state["deal_model_downside_df"] = df_down
+    st.session_state["deal_model_breakpoints"] = breakpoints
 
-        if metrics["lowest_cash"] < 0 or metrics["dscr"] < 1.0 or float(su["gap"]) > 0:
-            st.session_state["financial_verdict"] = "High Financial Risk"
-        elif metrics["dscr"] < 1.25 or metrics_down["lowest_cash"] < 0:
-            st.session_state["financial_verdict"] = "Proceed with Caution"
-        else:
-            st.session_state["financial_verdict"] = "Proceed to Negotiation / Financing"
+    st.session_state["deal_model_roi"] = metrics["roi"]
+    st.session_state["deal_model_payback"] = metrics["payback_month"]
+    st.session_state["deal_model_break_even_month"] = metrics["break_even_month"]
+    st.session_state["deal_model_lowest_cash"] = metrics["lowest_cash"]
+    st.session_state["deal_model_lowest_cash_month"] = metrics["lowest_cash_month"]
+    st.session_state["deal_model_dscr"] = metrics["dscr"]
+    st.session_state["deal_model_equity_at_risk"] = metrics["equity_at_risk"]
+    st.session_state["deal_model_stabilized_monthly_net"] = metrics["stabilized_monthly_net"]
 
-        st.markdown("---")
-        st.subheader("Key Metrics")
+    st.session_state["deal_model_downside_roi"] = metrics_down["roi"]
+    st.session_state["deal_model_downside_payback"] = metrics_down["payback_month"]
+    st.session_state["deal_model_downside_break_even_month"] = metrics_down["break_even_month"]
+    st.session_state["deal_model_downside_lowest_cash"] = metrics_down["lowest_cash"]
 
-        m1, m2, m3, m4 = st.columns(4)
-        with m1:
-            st.metric("ROI", pct(metrics["roi"]))
-        with m2:
-            st.metric("Payback", f"{metrics['payback_month']} mo" if metrics["payback_month"] else "No payback")
-        with m3:
-            st.metric("Break-even", f"Month {metrics['break_even_month']}" if metrics["break_even_month"] else "Not reached")
-        with m4:
-            st.metric("Lowest Cash", money(metrics["lowest_cash"]))
+    if metrics["lowest_cash"] < 0 or metrics["dscr"] < 1.0 or float(su["gap"]) > 0:
+        st.session_state["financial_verdict"] = "High Financial Risk"
+    elif metrics["dscr"] < 1.25 or metrics_down["lowest_cash"] < 0:
+        st.session_state["financial_verdict"] = "Proceed with Caution"
+    else:
+        st.session_state["financial_verdict"] = "Proceed to Negotiation / Financing"
 
-        m5, m6, m7, m8 = st.columns(4)
-        with m5:
-            st.metric("Lowest Cash Month", str(metrics["lowest_cash_month"]) if metrics["lowest_cash_month"] else "N/A")
-        with m6:
-            st.metric("Equity at Risk", money(metrics["equity_at_risk"]))
-        with m7:
-            st.metric("DSCR", f"{metrics['dscr']:.2f}x")
-        with m8:
-            st.metric("Financial Verdict", st.session_state["financial_verdict"])
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
 
-        st.markdown("### What Breaks First")
-        for item in breakpoints:
-            st.write(f"- {item}")
+    render_section_intro(
+        title="Key metrics",
+        body="Use these outputs to judge whether the deal can produce an acceptable return, survive early pressure, and remain fundable.",
+    )
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
-        st.markdown("### Downside Case")
-        d1, d2, d3, d4 = st.columns(4)
-        with d1:
-            st.metric("Downside ROI", pct(metrics_down["roi"]))
-        with d2:
-            st.metric("Downside Break-even", f"Month {metrics_down['break_even_month']}" if metrics_down["break_even_month"] else "Not reached")
-        with d3:
-            st.metric("Downside Lowest Cash", money(metrics_down["lowest_cash"]))
-        with d4:
-            st.metric("Downside Payback", f"{metrics_down['payback_month']} mo" if metrics_down["payback_month"] else "No payback")
+    m1, m2, m3, m4 = st.columns(4, gap="medium")
+    with m1:
+        render_card(label="ROI", title=pct(metrics["roi"]), body="Projected return on invested equity.")
+    with m2:
+        render_card(label="Payback", title=f"{metrics['payback_month']} mo" if metrics["payback_month"] else "No payback", body="Estimated payback period based on the model.")
+    with m3:
+        render_card(label="Break-even", title=f"Month {metrics['break_even_month']}" if metrics["break_even_month"] else "Not reached", body="First month cumulative cash turns positive.")
+    with m4:
+        render_card(label="Lowest cash", title=money(metrics["lowest_cash"]), body="Lowest ending cash balance in the base case.")
 
-        st.markdown("### 3-Year Annual Summary")
-        st.dataframe(pnl, use_container_width=True, hide_index=True)
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
-        st.markdown("### Year 1 Monthly P&L")
-        st.dataframe(monthly_pnls[1], use_container_width=True, hide_index=True)
+    m5, m6, m7, m8 = st.columns(4, gap="medium")
+    with m5:
+        render_card(label="Lowest cash month", title=str(metrics["lowest_cash_month"]) if metrics["lowest_cash_month"] else "N/A", body="Month where liquidity is most constrained.")
+    with m6:
+        render_card(label="Equity at risk", title=money(metrics["equity_at_risk"]), body="Estimated equity exposure in the structure.")
+    with m7:
+        render_card(label="DSCR", title=f"{metrics['dscr']:.2f}x", body="Debt service coverage under the base case.")
+    with m8:
+        render_card(label="Verdict", title=st.session_state["financial_verdict"], body="Directional financial read based on the current model.")
 
-        st.markdown("### Year 2 Monthly P&L")
-        st.dataframe(monthly_pnls[2], use_container_width=True, hide_index=True)
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
 
-        st.markdown("### Year 3 Monthly P&L")
-        st.dataframe(monthly_pnls[3], use_container_width=True, hide_index=True)
+    render_section_intro(
+        title="What breaks first",
+        body="These are the first places the model becomes fragile under pressure.",
+    )
+    st.markdown('<div class="rc-gap-sm"></div>', unsafe_allow_html=True)
+    for item in breakpoints:
+        st.write(f"- {item}")
 
-        st.markdown("### Simplified Balance Sheet View")
-        st.dataframe(bs, use_container_width=True, hide_index=True)
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
 
-        st.markdown("### 3-Year Cash Curve")
-        st.line_chart(df.set_index("Month Index")["Ending Cash"])
+    render_section_intro(
+        title="Downside case",
+        body="Compare the base case to a stressed case so the model is not dependent on everything going right.",
+    )
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
-        st.markdown("### Monthly Forecast Detail")
-        st.dataframe(df, use_container_width=True, hide_index=True)
+    d1, d2, d3, d4 = st.columns(4, gap="medium")
+    with d1:
+        render_card(label="Downside ROI", title=pct(metrics_down["roi"]), body="Return under the downside case.")
+    with d2:
+        render_card(label="Downside break-even", title=f"Month {metrics_down['break_even_month']}" if metrics_down["break_even_month"] else "Not reached", body="Break-even timing under stress.")
+    with d3:
+        render_card(label="Downside lowest cash", title=money(metrics_down["lowest_cash"]), body="Liquidity floor under the downside case.")
+    with d4:
+        render_card(label="Downside payback", title=f"{metrics_down['payback_month']} mo" if metrics_down["payback_month"] else "No payback", body="Payback timing under stress.")
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    render_section_intro(
+        title="Forecast outputs",
+        body="These views preserve the detailed outputs so you can review annual performance, monthly cash movement, and simplified balance-sheet posture.",
+    )
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+
+    st.markdown("### 3-Year Annual Summary")
+    st.dataframe(pnl, use_container_width=True, hide_index=True)
+
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+    st.markdown("### Year 1 Monthly P&L")
+    st.dataframe(monthly_pnls[1], use_container_width=True, hide_index=True)
+
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+    st.markdown("### Year 2 Monthly P&L")
+    st.dataframe(monthly_pnls[2], use_container_width=True, hide_index=True)
+
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+    st.markdown("### Year 3 Monthly P&L")
+    st.dataframe(monthly_pnls[3], use_container_width=True, hide_index=True)
+
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+    st.markdown("### Simplified Balance Sheet View")
+    st.dataframe(bs, use_container_width=True, hide_index=True)
+
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+    st.markdown("### 3-Year Cash Curve")
+    st.line_chart(df.set_index("Month Index")["Ending Cash"])
+
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+    st.markdown("### Monthly Forecast Detail")
+    st.dataframe(df, use_container_width=True, hide_index=True)
+
+
+def render_deal_model() -> None:
+    _init_monthly_plan()
+    su = calc_sources_uses(st.session_state)
+
+    open_shell()
+
+    render_page_header(
+        eyebrow="Execution — Deal Model",
+        title="Estimate what the deal can really produce.",
+        subtitle=(
+            "Use this model to estimate a truer P&L, review forecast performance, and test whether the economics still work "
+            "under more realistic operating assumptions."
+        ),
+        wide=True,
+    )
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    _render_workspace_metrics(su)
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    revenue_inputs = _render_revenue_setup()
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    variable_inputs = _render_variable_expenses()
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    fixed_cost_inputs = _render_fixed_costs()
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    growth_inputs = _render_growth_inputs()
+
+    inputs = {
+        "revenue_mode": revenue_inputs["revenue_mode_internal"],
+        "forecast_mode": revenue_inputs["forecast_mode_internal"],
+        "seasonality_mode": revenue_inputs["seasonality_mode_internal"],
+        "annual_revenue": revenue_inputs["annual_revenue"],
+        "annual_tickets": revenue_inputs["annual_tickets"],
+        "avg_ticket": revenue_inputs["avg_ticket"],
+        "monthly_plan": st.session_state.get("deal_monthly_plan").copy(),
+        "ramp_months": revenue_inputs["ramp_months"],
+        "starting_cash": revenue_inputs["starting_cash"],
+        "revenue_growth_pct": revenue_inputs["revenue_growth_pct"],
+        "debt_payment": float(su["debt_payment"]),
+        **variable_inputs,
+        **fixed_cost_inputs,
+        **growth_inputs,
+    }
+
+    _persist_inputs(inputs)
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    if st.button(
+        "Build 3-Year Deal Model",
+        key="build_deal_model",
+        use_container_width=True,
+        type="primary",
+    ):
+        _build_and_render_results(inputs, su)
+
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+
+    if st.button(
+        "Open Execution Report",
+        key="deal_model_open_execution_report",
+        use_container_width=True,
+    ):
+        st.session_state["current_page"] = "Execution Report"
+        st.rerun()
+
+    close_shell()

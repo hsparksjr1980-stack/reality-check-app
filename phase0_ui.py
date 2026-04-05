@@ -1,140 +1,92 @@
+# phase0_ui.py
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
 import streamlit as st
+
+from ui_styles import (
+    close_shell,
+    open_shell,
+    render_card,
+    render_page_header,
+    render_section_intro,
+)
 
 
 ANSWER_OPTIONS = ["Select one...", "Yes", "Somewhat", "No"]
 
 
-def _sidebar_color(score: int):
-    if score >= 78:
-        return "#3cb371", "rgba(60,179,113,.12)"   # green
-    elif score >= 58:
-        return "#ffc107", "rgba(255,193,7,.12)"   # yellow
-    else:
-        return "#dc3545", "rgba(220,53,69,.12)"   # red
-    
+@dataclass(frozen=True)
+class QuestionGroup:
+    title: str
+    description: str
+    questions: tuple[str, ...]
 
-def _inject_styles() -> None:
-    st.markdown(
-        """
-        <style>
-        .rc-hero, .rc-card, .rc-featured, .rc-helper, .rc-metric, .rc-live {
-            border: 1px solid rgba(120,120,120,.22);
-            border-radius: 18px;
-            background: rgba(255,255,255,.02);
-        }
-        .rc-hero {
-            padding: 1.3rem 1.3rem 1rem 1.3rem;
-            margin-bottom: 1rem;
-        }
-        .rc-card, .rc-featured, .rc-helper, .rc-metric, .rc-live {
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-        .rc-kicker {
-            font-size: 0.82rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            opacity: 0.72;
-            margin-bottom: 0.4rem;
-        }
-        .rc-title {
-            font-size: 1.9rem;
-            font-weight: 700;
-            line-height: 1.15;
-            margin-bottom: 0.45rem;
-        }
-        .rc-subtitle {
-            font-size: 1rem;
-            opacity: 0.92;
-        }
-        .rc-section-title {
-            font-size: 1.15rem;
-            font-weight: 700;
-            margin-bottom: 0.35rem;
-        }
-        .rc-card-title {
-            font-size: 1.08rem;
-            font-weight: 700;
-            margin-bottom: 0.2rem;
-        }
-        .rc-badge {
-            display: inline-block;
-            font-size: 0.74rem;
-            font-weight: 600;
-            padding: 0.22rem 0.5rem;
-            border-radius: 999px;
-            border: 1px solid rgba(120,120,120,.28);
-            margin-bottom: 0.55rem;
-        }
-        .rc-big {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-        .rc-muted {
-            opacity: 0.84;
-        }
-        .rc-metric-label {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            opacity: 0.72;
-            margin-bottom: 0.2rem;
-        }
-        .rc-metric-value {
-            font-size: 1.45rem;
-            font-weight: 700;
-            line-height: 1.1;
-        }
-        .rc-live-title {
-            font-size: 0.9rem;
-            font-weight: 700;
-            margin-bottom: 0.35rem;
-        }
 
-        .result-good {
-            border: 1px solid rgba(60, 179, 113, .45) !important;
-            background: rgba(60, 179, 113, .10) !important;
-        }
-        .result-caution {
-            border: 1px solid rgba(255, 193, 7, .45) !important;
-            background: rgba(255, 193, 7, .10) !important;
-        }
-        .result-bad {
-            border: 1px solid rgba(220, 53, 69, .45) !important;
-            background: rgba(220, 53, 69, .10) !important;
-        }
-        .metric-good {
-            border: 1px solid rgba(60, 179, 113, .35) !important;
-            background: rgba(60, 179, 113, .08) !important;
-        }
-        .metric-caution {
-            border: 1px solid rgba(255, 193, 7, .35) !important;
-            background: rgba(255, 193, 7, .08) !important;
-        }
-        .metric-bad {
-            border: 1px solid rgba(220, 53, 69, .35) !important;
-            background: rgba(220, 53, 69, .08) !important;
-        }
-        .sticky-score-wrap {
-            position: sticky;
-            top: 0.75rem;
-            z-index: 999;
-            margin-bottom: 1rem;
-        }
-        .sticky-score-inner {
-            border: 1px solid rgba(120,120,120,.22);
-            border-radius: 18px;
-            padding: 1rem;
-            background: rgba(20,20,20,.92);
-            backdrop-filter: blur(8px);
-            box-shadow: 0 6px 18px rgba(0,0,0,.18);
-        }
-        
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+QUESTION_GROUPS: tuple[QuestionGroup, ...] = (
+    QuestionGroup(
+        title="Ownership & Operating Reality",
+        description="Assess whether your expectations match the day-to-day demands of ownership.",
+        questions=(
+            "1. Are you clear on whether you want to be an operator or mainly an investor?",
+            "2. Are you willing to run daily operations if that is what the business requires early?",
+            "3. Are you willing to work long hours early if needed?",
+            "4. Are you comfortable managing people, turnover, and training?",
+            "5. Are you willing to learn skill gaps like accounting, marketing, and staffing?",
+            "6. Are you willing to be involved in sales and local marketing if traffic is slower than expected?",
+        ),
+    ),
+    QuestionGroup(
+        title="Personal Fit & Lifestyle",
+        description="Evaluate whether the business aligns with your time, energy, and family reality.",
+        questions=(
+            "7. Are you comfortable with inventory, operational details, and repetitive execution?",
+            "8. Are you naturally comfortable dealing with people all day?",
+            "9. Do you have support at home for the time and stress this may require?",
+            "10. Can you tolerate sustained uncertainty and stress?",
+            "11. Could you handle slower-than-expected cash flow early?",
+            "12. Could you handle a meaningful buildout overrun without the deal breaking?",
+        ),
+    ),
+    QuestionGroup(
+        title="Risk & Financial Exposure",
+        description="Pressure test your understanding of guarantees, lease obligations, and downside exposure.",
+        questions=(
+            "13. Do you understand what a personal guarantee can mean for your finances?",
+            "14. Do you understand lease exposure and how long it can last?",
+            "15. Do you understand that personal assets may still be exposed in certain structures?",
+            "16. Could you handle an income drop or delayed owner pay early on?",
+            "17. Are you willing to trade convenience and flexibility for business demands for a period of time?",
+            "18. Are you comfortable solving problems daily without clear answers?",
+        ),
+    ),
+    QuestionGroup(
+        title="People & Execution",
+        description="Consider whether you can handle the practical realities of labor, systems, and repetition.",
+        questions=(
+            "19. Do you understand how hard staffing may be in a people-heavy business?",
+            "20. Do you understand how disruptive turnover can be?",
+            "21. Are you separating emotional excitement from business reality?",
+            "22. Are you willing to walk away if the facts do not hold up?",
+            "23. Are you comfortable following systems and process consistently?",
+            "24. Can you handle conflict with staff, customers, vendors, or partners directly?",
+        ),
+    ),
+    QuestionGroup(
+        title="Resilience & Decision Discipline",
+        description="Check whether you can stay steady if the deal is slower, harder, or more expensive than expected.",
+        questions=(
+            "25. Are you okay with repetitive work rather than constant novelty?",
+            "26. Could you tolerate a slow ramp without panicking into bad decisions?",
+            "27. Can you handle margin pressure without immediately feeling like the deal failed?",
+            "28. Could you absorb unplanned expenses without the business becoming an emergency?",
+            "29. Do you have a real support system, not just people cheering you on?",
+            "30. Is your reason for doing this grounded in business logic, not just timing or emotion?",
+        ),
+    ),
+)
 
 
 def _answer_points(value: str) -> int:
@@ -147,23 +99,23 @@ def _answer_points(value: str) -> int:
     return 0
 
 
-def _get_result_class(verdict: str) -> str:
-    if verdict == "Stronger Readiness Signal":
-        return "result-good"
-    if verdict == "Mixed Readiness Signal":
-        return "result-caution"
-    return "result-bad"
-
-
-def _get_metric_class(score: int) -> str:
+def _get_result_tone(score: int) -> tuple[str, str]:
     if score >= 78:
-        return "metric-good"
+        return "Stronger readiness signal", "Your current inputs suggest a stronger baseline fit for moving forward carefully."
     if score >= 58:
-        return "metric-caution"
-    return "metric-bad"
+        return "Mixed readiness signal", "Some inputs support moving forward, but several areas deserve closer scrutiny."
+    return "Lower readiness signal", "Your current inputs suggest more friction between this opportunity and your real operating situation."
 
 
-def _score_from_answers() -> tuple[int, str, list[str], list[str], int, int]:
+def _metric_status_label(score: int) -> str:
+    if score >= 78:
+        return "Strong"
+    if score >= 58:
+        return "Mixed"
+    return "Caution"
+
+
+def _score_from_answers() -> tuple[int, str, str, list[str], list[str], int, int]:
     strengths: list[str] = []
     watchouts: list[str] = []
 
@@ -175,9 +127,10 @@ def _score_from_answers() -> tuple[int, str, list[str], list[str], int, int]:
     capital_score = st.session_state.get("capital_flexibility_score", 3)
 
     yes_no_keys = [f"rc_q{i}" for i in range(1, 31)]
-    values = [st.session_state.get(k, "Select one...") for k in yes_no_keys]
-    points = [_answer_points(v) for v in values]
-    answered_count = sum(1 for v in values if v != "Select one...")
+    values = [st.session_state.get(key, "Select one...") for key in yes_no_keys]
+    points = [_answer_points(value) for value in values]
+
+    answered_count = sum(1 for value in values if value != "Select one...")
     total_questions = len(yes_no_keys)
     total_points = sum(points)
 
@@ -190,40 +143,40 @@ def _score_from_answers() -> tuple[int, str, list[str], list[str], int, int]:
         score += 5
         strengths.append("Your ownership posture appears more aligned with direct early-stage involvement.")
     elif ownership_style == "Investor / Semi-Absentee":
-        watchouts.append("Semi-absentee expectations can clash with how involved many concepts require owners to be early.")
+        watchouts.append("Semi-absentee expectations may not align well with concepts that require heavy owner involvement early.")
 
     if time_score >= 4:
         score += 6
-        strengths.append("Your time availability appears stronger for early owner effort.")
+        strengths.append("Your time availability appears better aligned with early owner demands.")
     elif time_score <= 2:
-        watchouts.append("Limited time availability may create strain if the business needs heavy owner involvement early.")
+        watchouts.append("Limited time availability may create strain if the business requires heavier owner involvement.")
 
     if ops_score >= 4:
         score += 5
         strengths.append("You appear more willing to be hands-on operationally.")
     elif ops_score <= 2:
-        watchouts.append("Lower operational willingness may create mismatch in high-touch businesses.")
+        watchouts.append("Lower operational willingness may create mismatch in higher-touch businesses.")
 
     if people_score >= 4:
         score += 4
-        strengths.append("Higher people-management comfort may help in labor-heavy concepts.")
+        strengths.append("Higher comfort with people management may help in labor-heavy concepts.")
     elif people_score <= 2:
-        watchouts.append("If people management is not a strength, team-heavy businesses deserve extra caution.")
+        watchouts.append("If people management is not a strength, team-heavy models deserve extra caution.")
 
     if capital_score >= 4:
         score += 6
-        strengths.append("Stronger capital flexibility creates more room if reality moves against the plan.")
+        strengths.append("Stronger capital flexibility provides more room if reality moves against the plan.")
     elif capital_score <= 2:
-        watchouts.append("Tight capital flexibility leaves less room for delays, overruns, or slower ramp.")
+        watchouts.append("Tight capital flexibility leaves less room for delays, overruns, or a slower ramp.")
 
     if risk_score <= 2:
-        watchouts.append("A conservative risk profile can clash with concepts that depend on optimistic assumptions.")
+        watchouts.append("A more conservative risk profile can conflict with models that depend on optimistic assumptions.")
     else:
         score += 2
 
-    signed_anything = st.session_state.get("signed_anything", False)
+    signed_anything = bool(st.session_state.get("signed_anything", False))
     if signed_anything:
-        watchouts.append("Once something is signed or money is committed, it becomes harder to unwind a weak deal.")
+        watchouts.append("Once documents are signed or money is committed, it becomes harder to unwind a weak opportunity.")
     else:
         strengths.append("You still appear early enough in the process to slow down and verify key facts.")
 
@@ -235,75 +188,68 @@ def _score_from_answers() -> tuple[int, str, list[str], list[str], int, int]:
         watchouts.append("If you are not willing to walk away, emotional commitment can override discipline.")
 
     score = max(1, min(100, score))
+    verdict, verdict_body = _get_result_tone(score)
 
-    if score >= 78:
-        verdict = "Stronger Readiness Signal"
-    elif score >= 58:
-        verdict = "Mixed Readiness Signal"
-    else:
-        verdict = "Weak Readiness Signal"
-
-    deduped_strengths = []
-    seen = set()
+    deduped_strengths: list[str] = []
+    seen_strengths: set[str] = set()
     for item in strengths:
-        if item not in seen:
+        if item not in seen_strengths:
             deduped_strengths.append(item)
-            seen.add(item)
+            seen_strengths.add(item)
 
-    deduped_watchouts = []
-    seen = set()
+    deduped_watchouts: list[str] = []
+    seen_watchouts: set[str] = set()
     for item in watchouts:
-        if item not in seen:
+        if item not in seen_watchouts:
             deduped_watchouts.append(item)
-            seen.add(item)
+            seen_watchouts.add(item)
 
-    return score, verdict, deduped_strengths[:6], deduped_watchouts[:6], answered_count, total_questions
-
-
-def render_phase_0():
-    _inject_styles()
-
-    st.title("Reality Check")
-
-    st.markdown(
-        """
-        <div class="rc-hero">
-            <div class="rc-kicker">Phase 1 — Self & Idea</div>
-            <div class="rc-title">Pressure test readiness before you focus on the deal itself.</div>
-            <div class="rc-subtitle">
-                The point here is not whether the concept sounds attractive. It is whether your time, operating posture,
-                risk tolerance, family reality, and capital position are aligned with what the business may actually require.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    return (
+        score,
+        verdict,
+        verdict_body,
+        deduped_strengths[:6],
+        deduped_watchouts[:6],
+        answered_count,
+        total_questions,
     )
 
-    st.markdown("### What to Look At")
-    st.write("- Operator vs investor mindset")
-    st.write("- Time availability and lifestyle reality")
-    st.write("- Risk tolerance and financial flexibility")
-    st.write("- Willingness to manage people and solve operational problems")
-    st.write("- Personal guarantee and lease exposure")
-    st.write("- Support system and tolerance for pressure")
 
-    st.markdown("### What’s Common in the Industry")
-    st.write("Many buyers focus on the concept before pressure testing themselves. In practice, fit with the work often matters more than excitement about the brand.")
+def _render_live_progress(score: int, verdict: str, answered_count: int, total_questions: int) -> None:
+    progress_ratio = answered_count / total_questions if total_questions else 0
 
-    st.markdown("### What to Ask")
-    st.write("- Do I actually want to run this kind of business, or do I just like the idea of owning it?")
-    st.write("- How much time, uncertainty, and pressure can I realistically carry?")
-    st.write("- Am I prepared for guarantees, lease obligations, staffing, and long hours if the plan gets harder?")
-    st.write("- What part of this is emotional, and what part is grounded?")
+    col1, col2, col3 = st.columns(3, gap="medium")
+    with col1:
+        render_card(
+            label="Current score",
+            title=str(score),
+            body="A directional signal based on your current answers and scoring inputs.",
+        )
+    with col2:
+        render_card(
+            label="Signal",
+            title=verdict,
+            body="This will tighten as you complete more of the assessment.",
+        )
+    with col3:
+        render_card(
+            label="Completion",
+            title=f"{answered_count} of {total_questions}",
+            body="Finish all sections for a more reliable read.",
+        )
 
-    st.markdown("### Pressure Test")
-    st.write("If the business needs more time, more staffing effort, and more capital than expected, does it still fit your reality?")
+    st.progress(progress_ratio)
 
-    st.markdown("---")
-    st.markdown("### Core Scoring Inputs")
 
-    c1, c2 = st.columns(2)
-    with c1:
+def _render_core_inputs() -> None:
+    render_section_intro(
+        title="Core scoring inputs",
+        body="These inputs shape the score alongside the question set. Keep them realistic, not aspirational.",
+    )
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2, gap="large")
+    with col1:
         st.selectbox(
             "Ownership Style",
             ["Owner-Operator", "Manager-Led", "Investor / Semi-Absentee"],
@@ -313,7 +259,7 @@ def render_phase_0():
             "Time Availability",
             min_value=1,
             max_value=5,
-            value=st.session_state.get("time_availability_score", 3),
+            value=int(st.session_state.get("time_availability_score", 3)),
             key="time_availability_score",
             help="1 = very limited, 5 = fully available",
         )
@@ -321,17 +267,17 @@ def render_phase_0():
             "Operational Willingness",
             min_value=1,
             max_value=5,
-            value=st.session_state.get("operational_willingness_score", 3),
+            value=int(st.session_state.get("operational_willingness_score", 3)),
             key="operational_willingness_score",
-            help="1 = does not want daily operations, 5 = wants to be very hands-on",
+            help="1 = prefers not to run daily operations, 5 = very hands-on",
         )
 
-    with c2:
+    with col2:
         st.slider(
             "People Management Comfort",
             min_value=1,
             max_value=5,
-            value=st.session_state.get("people_management_comfort_score", 3),
+            value=int(st.session_state.get("people_management_comfort_score", 3)),
             key="people_management_comfort_score",
             help="1 = not comfortable, 5 = very comfortable",
         )
@@ -339,7 +285,7 @@ def render_phase_0():
             "Risk Tolerance",
             min_value=1,
             max_value=5,
-            value=st.session_state.get("risk_tolerance_score", 3),
+            value=int(st.session_state.get("risk_tolerance_score", 3)),
             key="risk_tolerance_score",
             help="1 = conservative, 5 = aggressive",
         )
@@ -347,7 +293,7 @@ def render_phase_0():
             "Capital Flexibility",
             min_value=1,
             max_value=5,
-            value=st.session_state.get("capital_flexibility_score", 3),
+            value=int(st.session_state.get("capital_flexibility_score", 3)),
             key="capital_flexibility_score",
             help="1 = tight capital, 5 = strong flexibility",
         )
@@ -358,192 +304,191 @@ def render_phase_0():
         key="signed_anything",
     )
 
-    live_score, live_verdict, _, _, answered_count, total_questions = _score_from_answers()
-    live_metric_class = _get_metric_class(live_score)
-    border_color, bg_color = _sidebar_color(live_score)
 
-    st.sidebar.markdown(
-        f"""
-        <div style="
-            border: 1px solid {border_color};
-            border-left: 4px solid {border_color};
-            background: {bg_color};
-            border-radius: 14px;
-            padding: 0.75rem 0.9rem;
-            margin-bottom: 0.75rem;
-        ">
-            <div style="font-size:0.75rem; opacity:.7;">LIVE SCORE</div>
-            <div style="font-size:1.4rem; font-weight:700;">{live_score}</div>
-            <div style="font-size:0.8rem; margin-top:0.25rem;">
-                {answered_count} / {total_questions} answered
-            </div>
-            <div style="font-size:0.85rem; margin-top:0.35rem; font-weight:600;">
-                {live_verdict}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-)
+def _render_question_groups() -> None:
+    render_section_intro(
+        title="Reality Check questions",
+        body="Answer based on what is true today. The goal is not optimism. The goal is fit, readiness, and discipline.",
+    )
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
-    
+    for group_index, group in enumerate(QUESTION_GROUPS, start=1):
+        with st.expander(f"{group_index}. {group.title}", expanded=(group_index == 1)):
+            st.caption(group.description)
+            for question in group.questions:
+                question_number = int(question.split(".", 1)[0])
+                st.selectbox(
+                    question,
+                    ANSWER_OPTIONS,
+                    key=f"rc_q{question_number}",
+                )
 
-    st.markdown(
-    f"""
-    <div class="sticky-score-wrap">
-        <div class="sticky-score-inner {live_metric_class}">
-            <div class="rc-live-title">Live Score Summary</div>
-            <div class="rc-muted">
-                Current Score: <strong>{live_score}</strong> &nbsp;&nbsp;|&nbsp;&nbsp;
-                Answered: <strong>{answered_count} / {total_questions}</strong> &nbsp;&nbsp;|&nbsp;&nbsp;
-                Current Signal: <strong>{live_verdict}</strong>
-            </div>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
 
-    st.markdown("---")
-    st.markdown("### 30 Reality Check Questions")
-
-    questions = [
-        "1. Are you clear on whether you want to be an operator or mainly an investor?",
-        "2. Are you willing to run daily operations if that is what the business requires early?",
-        "3. Are you willing to work long hours early if needed?",
-        "4. Are you comfortable managing people, turnover, and training?",
-        "5. Are you willing to learn skill gaps like accounting, marketing, and staffing?",
-        "6. Are you willing to be involved in sales and local marketing if traffic is slower than expected?",
-        "7. Are you comfortable with inventory, operational details, and repetitive execution?",
-        "8. Are you naturally comfortable dealing with people all day?",
-        "9. Do you have support at home for the time and stress this may require?",
-        "10. Can you tolerate sustained uncertainty and stress?",
-        "11. Could you handle slower-than-expected cash flow early?",
-        "12. Could you handle a meaningful buildout overrun without the deal breaking?",
-        "13. Do you understand what a personal guarantee can mean for your finances?",
-        "14. Do you understand lease exposure and how long it can last?",
-        "15. Do you understand that personal assets may still be exposed in certain structures?",
-        "16. Could you handle an income drop or delayed owner pay early on?",
-        "17. Are you willing to trade convenience and flexibility for business demands for a period of time?",
-        "18. Are you comfortable solving problems daily without clear answers?",
-        "19. Do you understand how hard staffing may be in a people-heavy business?",
-        "20. Do you understand how disruptive turnover can be?",
-        "21. Are you separating emotional excitement from business reality?",
-        "22. Are you willing to walk away if the facts do not hold up?",
-        "23. Are you comfortable following systems and process consistently?",
-        "24. Can you handle conflict with staff, customers, vendors, or partners directly?",
-        "25. Are you okay with repetitive work rather than constant novelty?",
-        "26. Could you tolerate a slow ramp without panicking into bad decisions?",
-        "27. Can you handle margin pressure without immediately feeling like the deal failed?",
-        "28. Could you absorb unplanned expenses without the business becoming an emergency?",
-        "29. Do you have a real support system, not just people cheering you on?",
-        "30. Is your reason for doing this grounded in business logic, not just timing or emotion?",
-    ]
-
-    col1, col2 = st.columns(2)
-    for i, question in enumerate(questions, start=1):
-        with col1 if i <= 15 else col2:
-            st.selectbox(question, ANSWER_OPTIONS, key=f"rc_q{i}")
-
-    st.markdown("---")
-    st.markdown("### Reflection Notes")
+def _render_reflection_notes() -> None:
+    render_section_intro(
+        title="Reflection notes",
+        body="These notes matter. They often reveal more than the score when someone is forcing fit.",
+    )
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
     st.text_area(
         "What is the biggest reason this opportunity appeals to you right now?",
         value=st.session_state.get("rc_biggest_appeal", ""),
         key="rc_biggest_appeal",
-        height=90,
+        height=100,
         placeholder="Examples: independence, income potential, lifestyle, brand appeal, growth opportunity",
     )
-
     st.text_area(
         "What is your biggest concern at this stage?",
         value=st.session_state.get("rc_biggest_concern", ""),
         key="rc_biggest_concern",
-        height=90,
+        height=100,
         placeholder="Examples: risk, hours, debt, staffing, uncertainty, family impact, capital exposure",
     )
-
     st.text_area(
         "What would need to be true for this to fit you well?",
         value=st.session_state.get("rc_fit_conditions_notes", ""),
         key="rc_fit_conditions_notes",
-        height=90,
+        height=100,
         placeholder="Examples: manageable staffing, enough liquidity, realistic hours, family support, clear economics",
     )
 
-    score, verdict, strengths, watchouts, answered_count, total_questions = _score_from_answers()
+
+def _render_results(
+    *,
+    score: int,
+    verdict: str,
+    verdict_body: str,
+    strengths: list[str],
+    watchouts: list[str],
+) -> None:
     st.session_state["readiness_score"] = score
+    st.session_state["phase_0_complete"] = True
 
-    result_class = _get_result_class(verdict)
-    metric_class = _get_metric_class(score)
-
-    st.markdown("---")
-    st.markdown(
-        f"""
-        <div class="rc-featured {result_class}">
-            <div class="rc-badge">Current Result</div>
-            <div class="rc-big">{verdict}</div>
-            <div class="rc-muted">
-                This result summarizes how your current operating posture, personal realities, and financial flexibility appear to line up with franchise ownership reality.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    render_section_intro(
+        title="Current result",
+        body="This is a directional output, not a final decision. Treat it as a disciplined read on your present fit and readiness.",
     )
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
 
-    mc1, mc2 = st.columns(2)
-    with mc1:
-        st.markdown(
-            f"""
-            <div class="rc-metric {metric_class}">
-                <div class="rc-metric-label">Readiness Score</div>
-                <div class="rc-metric-value">{score}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+    col1, col2 = st.columns(2, gap="large")
+    with col1:
+        render_card(
+            label="Readiness signal",
+            title=verdict,
+            body=verdict_body,
         )
-    with mc2:
-        next_signal = "Continue to Concept Validation" if score >= 55 else "Continue, but pressure test fit carefully"
-        st.markdown(
-            f"""
-            <div class="rc-metric">
-                <div class="rc-metric-label">Next Signal</div>
-                <div class="rc-metric-value" style="font-size:1.05rem;">{next_signal}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+    with col2:
+        next_signal = (
+            "Continue to Concept Validation"
+            if score >= 55
+            else "Continue carefully and pressure test fit more aggressively"
+        )
+        render_card(
+            label="Next step",
+            title=next_signal,
+            body=f"Current status: {_metric_status_label(score)}.",
         )
 
-    c3, c4 = st.columns(2)
-    with c3:
-        st.markdown('<div class="rc-section-title">What Looks Stronger</div>', unsafe_allow_html=True)
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+
+    strength_col, watchout_col = st.columns(2, gap="large")
+    with strength_col:
+        st.markdown("### What looks stronger")
         if strengths:
             for item in strengths:
                 st.write(f"- {item}")
         else:
             st.write("- No clear strengths identified yet.")
 
-    with c4:
-        st.markdown('<div class="rc-section-title">What May Need Work</div>', unsafe_allow_html=True)
+    with watchout_col:
+        st.markdown("### What may need more scrutiny")
         if watchouts:
             for item in watchouts:
                 st.write(f"- {item}")
         else:
             st.write("- No major watch-outs identified yet.")
 
-    st.markdown(
-        """
-        <div class="rc-helper">
-            <div class="rc-card-title">What to ask yourself now</div>
-            <div class="rc-muted">
-                Is the opportunity attractive because it fits your reality, or because it sounds appealing from a distance?
-                That distinction matters more than most buyers expect.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    st.markdown('<div class="rc-gap-md"></div>', unsafe_allow_html=True)
+
+    render_card(
+        label="Decision discipline",
+        title="Do not confuse attraction with fit.",
+        body=(
+            "The most important question at this stage is not whether the concept sounds appealing. "
+            "It is whether the actual work, pressure, and exposure fit your reality."
+        ),
     )
 
-    if st.button("Continue to Concept Validation", key="phase0_continue", use_container_width=True):
+
+def render_phase_0() -> None:
+    score, verdict, verdict_body, strengths, watchouts, answered_count, total_questions = _score_from_answers()
+
+    open_shell()
+
+    render_page_header(
+        eyebrow="Phase 1 — Self & Idea",
+        title="Pressure test readiness before focusing on the deal itself.",
+        subtitle=(
+            "This stage evaluates whether your time, operating posture, risk tolerance, "
+            "support system, and capital flexibility align with what the business may actually require."
+        ),
+        wide=True,
+    )
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    info_col_1, info_col_2, info_col_3 = st.columns(3, gap="medium")
+    with info_col_1:
+        render_card(
+            label="Focus",
+            title="Operator vs. investor fit",
+            body="Clarify whether you are genuinely suited to the work, not just attracted to the idea of ownership.",
+        )
+    with info_col_2:
+        render_card(
+            label="Focus",
+            title="Risk and flexibility",
+            body="Assess whether your financial position can absorb delays, overruns, and uncertainty.",
+        )
+    with info_col_3:
+        render_card(
+            label="Focus",
+            title="Personal reality",
+            body="Evaluate family support, time demands, staffing pressure, and tolerance for operational stress.",
+        )
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    _render_core_inputs()
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    _render_live_progress(score, verdict, answered_count, total_questions)
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    _render_question_groups()
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    _render_reflection_notes()
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    score, verdict, verdict_body, strengths, watchouts, answered_count, total_questions = _score_from_answers()
+    _render_results(
+        score=score,
+        verdict=verdict,
+        verdict_body=verdict_body,
+        strengths=strengths,
+        watchouts=watchouts,
+    )
+
+    st.markdown('<div class="rc-gap-lg"></div>', unsafe_allow_html=True)
+
+    if st.button("Continue to Concept Validation", key="phase0_continue", use_container_width=True, type="primary"):
         st.session_state["current_page"] = "Concept Validation"
         st.rerun()
+
+    close_shell()
