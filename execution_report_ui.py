@@ -9,7 +9,7 @@ from typing import Any
 
 import pandas as pd
 import streamlit as st
-from reportlab.lib.colors import HexColor, black, grey
+from reportlab.lib.colors import HexColor, black, gray
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -368,7 +368,7 @@ def _draw_table(
 
     if len(df) > len(working):
         pdf.setFont("Helvetica-Oblique", 8)
-        pdf.setFillColor(grey)
+        pdf.setFillColor(gray)
         pdf.drawString(x, y, f"Showing first {len(working)} rows of {len(df)}.")
         y -= 14
 
@@ -391,7 +391,7 @@ def _create_pdf(payload: dict[str, Any]) -> bytes:
     y -= 18
 
     pdf.setFont("Helvetica", 10)
-    pdf.setFillColor(grey)
+    pdf.setFillColor(gray)
     pdf.drawString(left, y, f"Prepared for {payload['full_name']} on {payload['report_date']}")
     y -= 24
 
@@ -598,7 +598,7 @@ def _create_pdf(payload: dict[str, Any]) -> bytes:
         y = _draw_wrapped_text(pdf, text, left, y, usable_width)
 
     pdf.setFont("Helvetica", 8)
-    pdf.setFillColor(grey)
+    pdf.setFillColor(gray)
     pdf.drawCentredString(page_width / 2, 20, "Reality Check — Execution Report")
 
     pdf.save()
